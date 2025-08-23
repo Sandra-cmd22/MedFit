@@ -1,0 +1,86 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Clientes.css';
+import BottomNav from '../components/BottomNav.jsx';
+
+const Clientes = () => {
+	const navigate = useNavigate();
+	const [query, setQuery] = useState('');
+	const [clientes, setClientes] = useState([]);
+
+	useEffect(() => {
+		fetch('http://localhost:3001/api/clientes')
+			.then(res => res.json())
+			.then(data => setClientes(data));
+	}, []);
+
+	const clients = useMemo(() => {
+		const q = query.trim().toLowerCase();
+		if (!q) return clientes;
+		return clientes.filter((c) => `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(q));
+	}, [query, clientes]);
+
+	const goToHome = (c) => {
+		const fullName = `${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`;
+		try { localStorage.setItem('medfit_user_name', fullName); } catch {}
+		navigate('/home', { state: { name: fullName, newEntry: { peso: c.peso, altura: c.altura } } });
+	};
+
+	// Exemplo de cadastro
+	const handleCadastrar = async () => {
+		const cliente = { nome, sexo, /* outros campos */ };
+		await fetch('http://localhost:3001/api/clientes', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(cliente)
+		});
+		// Redirecione para a tela de clientes ou atualize a lista
+	};
+
+	return (
+		<div className="clientes-container">
+			<div className="clientes-header">
+				<button className="icon-btn" onClick={() => navigate(-1)}>
+					<span className="material-symbols-rounded" style={{ fontVariationSettings: '"wght" 300' }}>arrow_back</span>
+				</button>
+				<h1 className="clientes-title">Clientes</h1>
+			</div>
+
+			<label className="search-label" htmlFor="search">Buscar Cliente por Nome</label>
+			<div className="search-box">
+				<span className="material-symbols-rounded search-icon" style={{ fontVariationSettings: '"wght" 300' }}>search</span>
+				<input id="search" className="search-input" type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Digite o nome" />
+			</div>
+
+			<div className="table-scroll">
+				<table className="table">
+					<thead>
+						<tr>
+							<th>Nome</th>
+							<th>Idade</th>
+							<th>Sexo</th>
+							<th>Altura</th>
+							<th>Peso</th>
+						</tr>
+					</thead>
+					<tbody>
+						{clients.map((c) => (
+							<tr key={c.id}>
+								<td>
+									<button className="name-pill" onClick={() => goToHome(c)}>{`${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`}</button>
+								</td>
+								<td>{c.idade}</td>
+								<td>{c.sexo}</td>
+								<td>{c.altura}</td>
+								<td>{c.peso}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+			<BottomNav />
+		</div>
+	);
+};
+
+export default Clientes;

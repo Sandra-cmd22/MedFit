@@ -1,0 +1,176 @@
+/* Container principal */
+.container-av {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+	background-color: #fff;
+	font-family: 'Poppins', sans-serif;
+	font-size: 14px;
+	padding-bottom: 80px; /* espaço para bottom nav */
+}
+
+.scroll-view-av {
+	flex-grow: 1;
+	padding: 16px;
+	background-color: #fff;
+}
+
+/* Header */
+.header-av {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-bottom: 8px;
+}
+
+.back-btn-av {
+	background: transparent;
+	border: none;
+	padding: 4px;
+	cursor: pointer;
+	
+}
+
+.title-av {
+	font-size: 24px;
+	font-weight: 500;
+	margin: 0;
+	text-align: center;
+}
+
+.person-name {
+	font-size: 14px;
+	color: #4B5563;
+	margin: 4px 0 12px 36px; /* alinhado ao título com espaço do ícone */
+}
+
+/* Datas */
+.date-row-av {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.date-group-av {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.date-label-av {
+	font-size: 14px;
+	color: #555;
+	margin-bottom: 6px;
+}
+
+.date-field-av {
+    background-color: #0C4A6E;  /* Fundo azul do botão */
+    border-radius: 8px;
+    height: 38px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #fff;                /* Texto branco */
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.date-btn-av {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: transparent;
+	border: none;
+	color: #fff;
+	padding: 0;
+	cursor: pointer;
+	height: 38px;
+	align-self: stretch;
+}
+
+.date-icon-av { font-size: 22px; line-height: 1; color: #fff; }
+
+.date-text-av {
+    font-size: 16px;
+    color: #fff;                /* Garante que a data fique branca */
+    background: none;           /* Remove qualquer fundo extra */
+    padding: 0;                 /* Remove espaçamento extra */
+    border: none;               /* Remove borda extra */
+    line-height: 1;             /* Ajuda a centralizar verticalmente */
+}
+
+/* Seção medidas */
+.section-title-av {
+	font-size: 18px;
+	font-weight: 600;
+	margin: 18px 0 8px 0;
+	
+}
+
+.row-av {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.col-av { flex: 1; }
+
+.label-av {
+	font-size: 14px;
+	color: #555;
+	margin-bottom: 5px;
+	display: block;
+}
+
+.input-av {
+	width: 100%;
+	background-color: #F7F7F7;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	height: 36px;
+	padding: 0 12px;
+	box-sizing: border-box;
+	color: #000;
+}
+
+.primary-btn-av {
+	background-color: #0C4A6E;
+	border-radius: 8px;
+	height: 48px;
+	padding: 0 16px;
+	color: #fff;
+	font-weight: 600;
+	font-family: 'Poppins', sans-serif;
+	font-size: 14px;
+	border: none;
+	width: 100%;
+	margin-top: 12px;
+	cursor: pointer;
+}
+
+/* Estilo para o botão de cadastro no menu */
+.menu-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px 16px;
+	border-radius: 8px;
+	transition: background-color 0.3s;
+}
+
+.menu-item:hover {
+	background-color: #F0F4F8;
+}
+
+.material-symbols-rounded {
+	font-variation-settings: "'wght' 300";
+	font-size: 28px;
+	color: #0C4A6E;
+}

@@ -1,0 +1,46 @@
+.bottom-nav {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: 100%;
+	height: 64px;
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px 10px 8px;
+	background: #fff;
+	border-top: 1px solid #E5E7EB;
+	box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+	z-index: 1000;
+	overflow: hidden;
+
+}
+
+.nav-item {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	background: transparent;
+	border: none;
+	padding: 6px 4px;
+	cursor: pointer;
+	color: #4B5563;
+	font-family: 'Poppins', sans-serif;
+}
+
+.nav-item.active {
+	color: #0C518D;
+}
+
+.nav-icon {
+	font-size: 40px;
+	line-height: 1;
+}
+
+.nav-label {
+	font-size: 12px;
+} 
