@@ -1,20 +1,35 @@
 {
   "name": "MedFit",
   "short_name": "MedFit",
-  "start_url": ".",
+  "description": "Sistema de avaliação física e acompanhamento de clientes",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#0C518D",
+  "background_color": "#ffffff",
   "theme_color": "#0C518D",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["health", "fitness", "medical"],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable any"
     },
     {
-      "src": "icon-512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

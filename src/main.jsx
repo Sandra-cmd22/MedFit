@@ -12,9 +12,13 @@ import Avaliacao from './screens/Avaliacao.jsx';
 import Configuracao from './screens/Configuracao.jsx';
 import Historico from './screens/Historico.jsx';
 
+// PWA
+import PWAInstaller from './components/PWAInstaller.jsx';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
+      <PWAInstaller />
       <Routes>
         <Route path="/" element={<Splash />} />
         <Route path="/cadastro" element={<Cadastro />} />
