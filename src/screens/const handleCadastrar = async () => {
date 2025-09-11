@@ -1,9 +1,0 @@
-const handleCadastrar = async () => {
-  const cliente = { nome, sexo, /* outros campos */ };
-  await fetch('/api/clientes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(cliente)
-  });
-  // Atualize a lista ou navegue para outra tela
-};

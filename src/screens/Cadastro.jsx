@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { ptBR } from 'date-fns/locale';
-registerLocale('pt-BR', ptBR);
-import './Cadastro.css';
+import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav.jsx';
+import './Cadastro.css';
+registerLocale('pt-BR', ptBR);
 
 const Cadastro = () => {
     const navigate = useNavigate();
@@ -285,9 +285,7 @@ const Cadastro = () => {
                 </div>
             </div>
 
-            <div className="footer">
-                <BottomNav />
-            </div>
+            <BottomNav />
         </div>
     );
 };
