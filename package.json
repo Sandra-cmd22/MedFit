@@ -8,7 +8,13 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "firebase:emulator": "firebase emulators:start",
+    "firebase:deploy": "firebase deploy --only functions,hosting",
+    "firebase:deploy:hosting": "firebase deploy --only hosting",
+    "firebase:deploy:functions": "firebase deploy --only functions",
+    "firebase:logs": "firebase functions:log",
+    "setup:firebase": "chmod +x scripts/firebase-setup.sh && ./scripts/firebase-setup.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",

@@ -6,17 +6,10 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "redirects": [
-      {
-        "source": "/api/**",
-        "destination": "https://medfit-backend.vercel.app/api/:splat",
-        "type": 302
-      }
-    ],
     "rewrites": [
-      { 
-        "source": "**", 
-        "destination": "/index.html" 
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ],
     "headers": [
@@ -38,7 +31,30 @@
         ]
       }
     ]
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": {
+    "source": "functions",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "database": {
+      "port": 9000
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
   }
 }
-
-

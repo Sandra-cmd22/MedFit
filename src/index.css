@@ -95,6 +95,9 @@ body, html {
   font-size: 14px !important;
   color: #374151 !important;
   transition: background-color 0.2s ease !important;
+  text-align: center !important;
+  display: block !important;
+  width: 100% !important;
 }
 
 .custom-datepicker .react-datepicker__year-option:hover {

@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "clientes": {
+      "$clienteId": {
+        ".read": true,
+        ".write": true,
+        "medidas": {
+          ".validate": "newData.hasChildren(['peso', 'altura', 'cintura', 'quadril'])",
+          "peso": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 500"
+          },
+          "altura": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 300"
+          },
+          "cintura": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 200"
+          },
+          "quadril": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 200"
+          }
+        },
+        "resultados": {
+          ".read": true,
+          ".write": false
+        }
+      }
+    }
+  }
+}

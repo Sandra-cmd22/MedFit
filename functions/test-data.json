@@ -1,0 +1,24 @@
+{
+  "exemploCliente": {
+    "nome": "João Silva",
+    "idade": 30,
+    "sexo": "Masculino",
+    "medidas": {
+      "peso": 80,
+      "altura": 175,
+      "cintura": 90,
+      "quadril": 100
+    }
+  },
+  "exemploCliente2": {
+    "nome": "Maria Santos",
+    "idade": 25,
+    "sexo": "Feminino",
+    "medidas": {
+      "peso": 65,
+      "altura": 165,
+      "cintura": 70,
+      "quadril": 95
+    }
+  }
+}
