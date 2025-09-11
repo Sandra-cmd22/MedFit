@@ -9,9 +9,10 @@
 .scroll-view {
     flex-grow: 1;
     padding: 20px;
-    padding-bottom: 120px; /* Espaço para bottom nav + botão */
+    padding-bottom: 140px; /* Espaço extra para bottom nav + botão */
     background-color: #fff;
     overflow-y: auto;
+    min-height: calc(100vh - 64px); /* Altura mínima menos a altura da bottom nav */
 }
 
 /* Header */
@@ -143,7 +144,7 @@
     border-radius: 8px;
     padding: 15px;
     margin-top: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 40px; /* Margem maior para garantir espaço */
     width: 100%;
     cursor: pointer;
     border: none;
