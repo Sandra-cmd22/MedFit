@@ -56,6 +56,14 @@
 	font-size: 14px;
 	font-family: 'Poppins', sans-serif;
 }
+.input{
+
+	height: 36px;
+	padding: 0 12px;
+	box-sizing: border-box;
+	border-radius: 4px;
+	color: #000;
+}
 
 /* Tabela */
 .table-scroll {
