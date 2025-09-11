@@ -1,24 +1,21 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const filePath = path.join(__dirname, 'clientes.json');
+const filePath = path.join(process.cwd(), 'src/database/clientes.json');
 
-// Função para salvar cliente
-function salvarCliente(cliente) {
-  let clientes = [];
-  if (fs.existsSync(filePath)) {
-    clientes = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  }
-  clientes.push(cliente);
-  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2));
-}
-
-// Função para listar clientes
-function listarClientes() {
+// Listar clientes
+export function listarClientes() {
   if (fs.existsSync(filePath)) {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   }
   return [];
 }
 
-module.exports = { salvarCliente, listarClientes };
+// Salvar cliente
+export function salvarCliente(cliente) {
+  let clientes = listarClientes();
+  cliente.id = Date.now();
+  clientes.push(cliente);
+  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2));
+  return cliente;
+}

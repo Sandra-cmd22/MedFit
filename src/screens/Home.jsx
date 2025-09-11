@@ -1,7 +1,31 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Importe useNavigate
 import './Home.css';
 import BottomNav from '../components/BottomNav.jsx';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Registrar componentes do Chart.js
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+);
 
 // ... (O resto do seu código permanece o mesmo) ...
 const quarterlyData = [
@@ -11,41 +35,64 @@ const quarterlyData = [
     { peso: 77, massa: 31 },
 ];
 
-function buildPerformanceSeries(data) {
-    const series = [];
-    let acc = 0;
-    series.push(acc);
-    for (let i = 1; i < data.length; i += 1) {
-        const deltaPeso = data[i].peso - data[i - 1].peso;
-        const deltaMassa = data[i].massa - data[i - 1].massa;
-        acc += (deltaMassa) - (deltaPeso);
-        series.push(acc);
+function buildChartData(data, medidas) {
+    if (!medidas || data.length === 0) {
+        // Dados de exemplo se não houver dados reais
+        return {
+            labels: ['Jan', 'Fev', 'Mar', 'Abr'],
+            datasets: [
+                {
+                    label: 'Desempenho',
+                    data: [85, 87, 89, 91],
+                    borderColor: '#0C518D',
+                    backgroundColor: 'rgba(12, 81, 141, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        };
     }
-    return series;
+    
+    const labels = [];
+    const performanceData = [];
+    const bracoBase = medidas.bracoDireito || 30;
+    
+    for (let i = 0; i < data.length; i += 1) {
+        const peso = data[i].peso;
+        const altura = medidas.altura || 170;
+        const imc = computeBMI(peso, altura);
+        const braco = medidas.bracoDireito || bracoBase;
+        
+        // Fórmula simplificada: melhor IMC + braço maior = melhor desempenho
+        const imcScore = imc ? Math.max(0, 22 - Math.abs(imc - 22)) * 2 : 0;
+        const bracoScore = (braco / bracoBase) * 20;
+        
+        const performance = Math.round(imcScore + bracoScore);
+        
+        labels.push(`Aval ${i + 1}`);
+        performanceData.push(performance);
+    }
+    
+    return {
+        labels,
+        datasets: [
+            {
+                label: 'Desempenho',
+                data: performanceData,
+                borderColor: '#0C518D',
+                backgroundColor: 'rgba(12, 81, 141, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#0C518D',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }
+        ]
+    };
 }
 
-function toSvgPath(series, width, height, padding) {
-    if (!series || series.length === 0) return '';
-    const min = Math.min(...series);
-    const max = Math.max(...series);
-    const range = max - min || 1;
-    const stepX = (width - padding * 2) / Math.max(1, series.length - 1);
-    const mapY = (v) => height - padding - ((v - min) / range) * (height - padding * 2);
-
-    return series.map((v, i) => `${i === 0 ? 'M' : 'L'} ${padding + i * stepX} ${mapY(v)}`).join(' ');
-}
-
-function toSvgArea(series, width, height, padding) {
-    if (!series || series.length === 0) return '';
-    const min = Math.min(...series);
-    const max = Math.max(...series);
-    const range = max - min || 1;
-    const stepX = (width - padding * 2) / Math.max(1, series.length - 1);
-    const mapY = (v) => height - padding - ((v - min) / range) * (height - padding * 2);
-    const top = series.map((v, i) => `${i === 0 ? 'M' : 'L'} ${padding + i * stepX} ${mapY(v)}`).join(' ');
-    const lastX = padding + (series.length - 1) * stepX;
-    return `${top} L ${lastX} ${height - padding} L ${padding} ${height - padding} Z`;
-}
 
 const STORAGE_KEY = 'medfit_quarterly';
 
@@ -63,14 +110,39 @@ function saveSeries(data) {
 }
 
 function computeBMI(peso, altura) {
-    if (!peso || !altura || Number.isNaN(peso) || Number.isNaN(altura) || altura <= 0) return undefined;
+    if (!peso || !altura || Number.isNaN(peso) || Number.isNaN(altura) || altura <= 0) return null;
     const h = altura > 3 ? altura / 100 : altura;
-    return +(peso / (h * h)).toFixed(1);
+    const bmi = peso / (h * h);
+    return Math.round(bmi * 10) / 10; // Arredonda para 1 casa decimal
 }
 
 function computeRCQ(cintura, quadril) {
-    if (!cintura || !quadril || Number.isNaN(cintura) || Number.isNaN(quadril) || quadril <= 0) return undefined;
-    return +(cintura / quadril).toFixed(2);
+    if (!cintura || !quadril || Number.isNaN(cintura) || Number.isNaN(quadril) || quadril <= 0) return null;
+    const rcq = cintura / quadril;
+    return Math.round(rcq * 100) / 100; // Arredonda para 2 casas decimais
+}
+
+function getBMICategory(bmi) {
+    if (bmi === null) return null;
+    if (bmi < 18.5) return 'Abaixo do peso';
+    if (bmi < 25) return 'Peso normal';
+    if (bmi < 30) return 'Sobrepeso';
+    if (bmi < 35) return 'Obesidade grau I';
+    if (bmi < 40) return 'Obesidade grau II';
+    return 'Obesidade grau III';
+}
+
+function getRCQCategory(rcq, sexo) {
+    if (rcq === null) return null;
+    if (sexo === 'Masculino') {
+        if (rcq < 0.85) return 'Baixo risco';
+        if (rcq < 0.95) return 'Risco moderado';
+        return 'Alto risco';
+    } else {
+        if (rcq < 0.80) return 'Baixo risco';
+        if (rcq < 0.85) return 'Risco moderado';
+        return 'Alto risco';
+    }
 }
 
 function polarToCartesian(cx, cy, r, angleDeg) {
@@ -87,8 +159,58 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
 
 const Home = () => {
     const location = useLocation();
-    const navigate = useNavigate(); // Obtenha o hook de navegação
+    const navigate = useNavigate();
+    const [clienteData, setClienteData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     
+    // Função para buscar dados atualizados do cliente
+    const fetchClienteData = async (userName, isUpdate = false) => {
+        if (!userName || userName === 'Home') {
+            setLoading(false);
+            return;
+        }
+        
+        if (isUpdate) {
+            setUpdating(true);
+        }
+        
+        try {
+            const response = await fetch('/api/clientes');
+            const clientes = await response.json();
+            const cliente = clientes.find(c => c.nome === userName);
+            if (cliente) {
+                setClienteData(cliente);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados do cliente:', error);
+        } finally {
+            setLoading(false);
+            if (isUpdate) {
+                setUpdating(false);
+            }
+        }
+    };
+    
+    // Buscar dados do cliente
+    useEffect(() => {
+        const userName = (location?.state?.name) || (typeof window !== 'undefined' ? (localStorage.getItem('medfit_user_name') || 'Home') : 'Home');
+        fetchClienteData(userName);
+    }, [location?.state?.name, location?.state?.newEntry]);
+    
+    // Atualizar dados quando a página ganhar foco (volta da avaliação)
+    useEffect(() => {
+        const handleFocus = () => {
+            const userName = (typeof window !== 'undefined' ? (localStorage.getItem('medfit_user_name') || 'Home') : 'Home');
+            if (userName && userName !== 'Home') {
+                fetchClienteData(userName, true);
+            }
+        };
+        
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
+
     const seriesData = useMemo(() => {
         let data = loadSeries();
         const entry = location?.state?.newEntry;
@@ -101,64 +223,140 @@ const Home = () => {
         return data;
     }, [location?.state]);
 
-    const performanceSeries = useMemo(() => buildPerformanceSeries(seriesData), [seriesData]);
-    const linePath = useMemo(() => toSvgPath(performanceSeries, 300, 100, 8), [performanceSeries]);
-    const areaPath = useMemo(() => toSvgArea(performanceSeries, 300, 100, 8), [performanceSeries]);
+    const chartData = useMemo(() => buildChartData(seriesData, clienteData?.medidas), [seriesData, clienteData?.medidas]);
 
     const userName = (location?.state?.name) || (typeof window !== 'undefined' ? (localStorage.getItem('medfit_user_name') || 'Home') : 'Home');
-    const { peso, altura, cintura, quadril } = location?.state?.newEntry || {};
+    
+    // Usar dados do cliente se disponível, senão usar dados da navegação
+    const peso = clienteData?.peso || location?.state?.newEntry?.peso;
+    const altura = clienteData?.altura || location?.state?.newEntry?.altura;
+    const sexo = clienteData?.sexo || location?.state?.newEntry?.sexo;
+    const cintura = clienteData?.medidas?.cintura || location?.state?.newEntry?.cintura;
+    const quadril = clienteData?.medidas?.quadril || location?.state?.newEntry?.quadril;
+    
     const imcAtual = computeBMI(peso, altura);
     const rcqAtual = computeRCQ(cintura, quadril);
-    const lastEvalDate = location?.state?.date || (typeof window !== 'undefined' ? localStorage.getItem('medfit_last_eval_date') : undefined);
+    const bmiCategory = getBMICategory(imcAtual);
+    const rcqCategory = getRCQCategory(rcqAtual, sexo);
+    
+    const lastEvalDate = clienteData?.dataCadastro ? new Date(clienteData.dataCadastro).toLocaleDateString() : (location?.state?.date || (typeof window !== 'undefined' ? localStorage.getItem('medfit_last_eval_date') : undefined));
 
-    const gaugeMax = 40;
-    const clamped = Math.max(0, Math.min(imcAtual ?? 0, gaugeMax));
-    const angle = 180 - (clamped / gaugeMax) * 180;
+
+    if (loading) {
+        return (
+            <div className="home-container">
+                <h1 className="home-title">Carregando...</h1>
+                <BottomNav />
+            </div>
+        );
+    }
 
     return (
         <div className="home-container">
-            <h1 className="home-title">{userName}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h1 className="home-title">{userName}</h1>
+                {updating && (
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        fontSize: '12px', 
+                        color: '#0C518D' 
+                    }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '16px', animation: 'spin 1s linear infinite' }}>
+                            refresh
+                        </span>
+                        Atualizando...
+                    </div>
+                )}
+            </div>
+            
+            {clienteData && (
+                <div style={{ marginBottom: '20px', fontSize: '14px', color: '#666' }}>
+                    <div>Idade: {clienteData.idade || '-'} anos</div>
+                    <div>Altura: {clienteData.altura || '-'} cm</div>
+                    <div>Peso: {clienteData.peso || '-'} kg</div>
+                    <div>Sexo: {clienteData.sexo || '-'}</div>
+                </div>
+            )}
 
             <div className="cards-column">
                 <div className="card">
                     <div className="card-header">IMC</div>
                     <div className="card-value" style={{ color: '#0C518D' }}>{imcAtual ?? '-'}</div>
+                    {bmiCategory && (
+                        <div className="card-category" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                            {bmiCategory}
+                        </div>
+                    )}
                 </div>
 
                 <div className="card">
                     <div className="card-header">RCQ</div>
                     <div className="card-value" style={{ color: '#0C518D' }}>{rcqAtual ?? '-'}</div>
+                    {rcqCategory && (
+                        <div className="card-category" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                            {rcqCategory}
+                        </div>
+                    )}
+                    {cintura && quadril && (
+                        <div className="card-relation" style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                            {cintura}cm / {quadril}cm
+                        </div>
+                    )}
                 </div>
 
                 <div className="card">
                     <div className="card-header">Desempenho</div>
-                    <svg className="chart" viewBox="0 0 300 100" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#0B508D" stopOpacity="0.35" />
-                                <stop offset="100%" stopColor="#0B508D" stopOpacity="0" />
-                            </linearGradient>
-                        </defs>
-                        {/* grid */}
-                        <g stroke="#d4d4d4" strokeWidth="0.5">
-                            <line x1="0" y1="25" x2="300" y2="25" />
-                            <line x1="0" y1="50" x2="300" y2="50" />
-                            <line x1="0" y1="75" x2="300" y2="75" />
-                        </g>
-                        <path d={areaPath} fill="url(#perfGradient)" stroke="none" />
-                        <path d={linePath} fill="none" stroke="#0B508D" strokeWidth="3" strokeLinecap="round" />
-                        {/* pontos */}
-                        {performanceSeries.map((v, i) => {
-                            const min = Math.min(...performanceSeries);
-                            const max = Math.max(...performanceSeries);
-                            const range = max - min || 1;
-                            const padding = 8;
-                            const stepX = (300 - padding * 2) / Math.max(1, performanceSeries.length - 1);
-                            const x = padding + i * stepX;
-                            const y = 100 - padding - ((v - min) / range) * (100 - padding * 2);
-                            return <circle key={i} cx={x} cy={y} r={3} fill="#0B508D" />;
-                        })}
-                    </svg>
+                    <div className="chart-container">
+                        <Line 
+                            data={chartData}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        backgroundColor: '#fff',
+                                        titleColor: '#333',
+                                        bodyColor: '#666',
+                                        borderColor: '#e0e0e0',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        displayColors: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Desempenho: ${context.parsed.y}%`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        },
+                                        ticks: {
+                                            color: '#666',
+                                            font: {
+                                                size: 12
+                                            }
+                                        }
+                                    },
+                                    y: {
+                                        display: false
+                                    }
+                                },
+                                elements: {
+                                    point: {
+                                        hoverBackgroundColor: '#0C518D'
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
                     <div className="chart-caption">Última avaliação: {lastEvalDate || '-'}</div>
                 </div>
             </div>
@@ -166,7 +364,37 @@ const Home = () => {
             <button className="primary-btn" type="button" onClick={() => {
                 navigate('/avaliacao', { state: { name: userName } });
             }}>Adicionar nova Avaliação</button>
-            <button className="secondary-btn" type="button">Ver Histórico completo</button>
+            
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <button className="secondary-btn" type="button" onClick={() => {
+                    navigate('/historico', { state: { clienteData, userName } });
+                }} style={{ flex: 1 }}>Ver Histórico completo</button>
+                
+                <button 
+                    className="secondary-btn" 
+                    type="button" 
+                    onClick={() => {
+                        const userName = (typeof window !== 'undefined' ? (localStorage.getItem('medfit_user_name') || 'Home') : 'Home');
+                        if (userName && userName !== 'Home') {
+                            fetchClienteData(userName, true);
+                        }
+                    }}
+                    disabled={updating}
+                    style={{ 
+                        flex: '0 0 auto', 
+                        width: 'auto', 
+                        padding: '0 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                    title="Atualizar dados"
+                >
+                    <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>
+                        refresh
+                    </span>
+                </button>
+            </div>
             <BottomNav />
         </div>
     );

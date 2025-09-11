@@ -174,3 +174,6 @@
 	font-size: 28px;
 	color: #0C4A6E;
 }
+
+/* Texto entre parênteses nas labels */
+.paren { font-size: 10px; }

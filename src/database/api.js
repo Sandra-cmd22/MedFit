@@ -1,35 +1,33 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import { listarClientes, salvarCliente } from 'src/database/clientes.json';
+
 const app = express();
 const PORT = 3001;
 
 app.use(express.json());
 
-const filePath = path.join(__dirname, 'clientes.json');
+const filePath = path.join(__dirname, 'src/database/clientes.json');
 
 // Listar clientes
 app.get('/api/clientes', (req, res) => {
-  if (fs.existsSync(filePath)) {
-    const clientes = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try {
+    const clientes = listarClientes();
     res.json(clientes);
-  } else {
-    res.json([]);
+  } catch {
+    res.status(500).json({ erro: 'Erro ao listar clientes' });
   }
 });
 
 // Cadastrar cliente
 app.post('/api/clientes', (req, res) => {
-  const cliente = req.body;
-  let clientes = [];
-  if (fs.existsSync(filePath)) {
-    clientes = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try {
+    const cliente = salvarCliente(req.body);
+    res.status(201).json(cliente);
+  } catch (err) {
+    res.status(400).json({ erro: err.message });
   }
-  clientes.push(cliente);
-  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2));
-  res.status(201).json(cliente);
 });
 
 app.listen(PORT, () => {
-  console.log(`API rodando em http://localhost:${PORT}`);
+  console.log(`🚀 API rodando em http://localhost:${PORT}`);
 });

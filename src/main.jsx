@@ -10,6 +10,7 @@ import Home from './screens/Home.jsx';
 import Clientes from './screens/Clientes.jsx';
 import Avaliacao from './screens/Avaliacao.jsx';
 import Configuracao from './screens/Configuracao.jsx';
+import Historico from './screens/Historico.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/avaliacao" element={<Avaliacao />} />
         <Route path="/config" element={<Configuracao />} />
+        <Route path="/historico" element={<Historico />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

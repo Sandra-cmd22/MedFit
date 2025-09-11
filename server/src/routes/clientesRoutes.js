@@ -1,27 +1,21 @@
-import { Router } from "express";
-import { clientesController } from "../controllers/clientesController.js";
+import express from 'express';
+import { createCliente, getAllClientes, getClienteById, updateCliente, deleteCliente } from '../controllers/clientesController.js';
 
-const router = Router();
+const router = express.Router();
 
-// GET /api/clientes - Lista todos os clientes
-router.get("/", clientesController.listarTodos);
+// GET /api/clientes - Listar todos os clientes
+router.get('/', getAllClientes);
 
-// GET /api/clientes/buscar?nome=... - Busca clientes por nome
-router.get("/buscar", clientesController.buscarPorNome);
+// GET /api/clientes/:id - Buscar cliente por ID
+router.get('/:id', getClienteById);
 
-// GET /api/clientes/stats - Estatísticas dos clientes
-router.get("/stats", clientesController.estatisticas);
+// POST /api/clientes - Criar novo cliente
+router.post('/', createCliente);
 
-// GET /api/clientes/:id - Busca cliente por ID
-router.get("/:id", clientesController.buscarPorId);
+// PUT /api/clientes/:id - Atualizar cliente
+router.put('/:id', updateCliente);
 
-// POST /api/clientes - Cria novo cliente
-router.post("/", clientesController.criar);
+// DELETE /api/clientes/:id - Deletar cliente
+router.delete('/:id', deleteCliente);
 
-// PUT /api/clientes/:id - Atualiza cliente
-router.put("/:id", clientesController.atualizar);
-
-// DELETE /api/clientes/:id - Remove cliente
-router.delete("/:id", clientesController.remover);
-
-export default router; 
+export default router;

@@ -20,15 +20,87 @@ const Cadastro = () => {
         .then(data => setClientes(data));
     }, []);
 
-    // Exemplo de cadastro
+    // Função para cadastrar cliente
     const handleCadastrar = async () => {
-      const cliente = { nome, sexo, /* outros campos */ };
-      await fetch('/api/clientes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cliente)
-      });
-      // Redirecione ou atualize a lista de clientes
+        try {
+            const getEl = (id) => document.getElementById(id);
+            const getNumber = (id) => {
+                const el = getEl(id);
+                if (!el) return NaN;
+                const v = parseFloat((el.value || '').toString().replace(',', '.'));
+                return Number.isNaN(v) ? NaN : v;
+            };
+            
+            const nome = (getEl('nome')?.value || '').toString().trim();
+            const idade = (getEl('idade')?.value || '').toString().trim();
+            const altura = getNumber('altura');
+            const peso = getNumber('peso');
+            
+            if (!nome) {
+                alert('Nome é obrigatório');
+                return;
+            }
+            
+            // Coletar todas as medidas
+            const medidas = {
+                bracoDireito: getNumber('braco-direito'),
+                bracoEsquerdo: getNumber('braco-esquerdo'),
+                bracoForcaDireito: getNumber('braco-forca-direito'),
+                bracoForcaEsquerdo: getNumber('braco-forca-esquerdo'),
+                antebracoDireito: getNumber('antebraco-direito'),
+                antebracoEsquerdo: getNumber('antebraco-esquerdo'),
+                torax: getNumber('torax'),
+                cintura: getNumber('cintura'),
+                quadril: getNumber('quadril'),
+                coxaProximalDireita: getNumber('coxa-proximal-direita'),
+                coxaProximalEsquerda: getNumber('coxa-proximal-esquerda'),
+                coxaDistalDireita: getNumber('coxa-distal-direita'),
+                coxaDistalEsquerda: getNumber('coxa-distal-esquerda'),
+                panturrilhaDireita: getNumber('panturrilha-direita'),
+                panturrilhaEsquerda: getNumber('panturrilha-esquerda'),
+            };
+            
+            const cliente = {
+                nome,
+                idade,
+                altura,
+                peso,
+                sexo,
+                medidas,
+                dataInicial: startDate.toISOString(),
+                dataFinal: endDate.toISOString(),
+                dataCadastro: new Date().toISOString()
+            };
+            
+            // Salvar na API
+            const response = await fetch('/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cliente)
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erro ao salvar cliente: ${response.status} - ${errorText}`);
+            }
+            
+            // Salvar nome no localStorage para uso posterior
+            try { localStorage.setItem('medfit_user_name', nome); } catch {}
+            try { localStorage.setItem('medfit_last_eval_date', endDate.toLocaleDateString()); } catch {}
+            
+            // Navegar para home
+            navigate('/home', { 
+                state: { 
+                    newEntry: { peso, altura, cintura: medidas.cintura, quadril: medidas.quadril }, 
+                    name: nome, 
+                    date: endDate.toLocaleDateString() 
+                } 
+            });
+            
+        } catch (error) {
+            console.error('Erro ao cadastrar:', error);
+            alert('Erro ao cadastrar cliente. Tente novamente.');
+        }
     };
 
     return (
@@ -131,17 +203,67 @@ const Cadastro = () => {
 
                     <div className="row">
                         <div className="col">
-                            <label className="label" htmlFor="braco">Braço</label>
-                            <input className="input" type="number" id="braco" inputMode="decimal" step="0.01" min="0" />
+                            <label className="label" htmlFor="braco-direito">Braço <span className="paren">(direito)</span></label>
+                            <input className="input" type="number" id="braco-direito" inputMode="decimal" step="0.01" min="0" />
                         </div>
                         <div className="col">
-                            <label className="label" htmlFor="antebraco">Antebraço</label>
-                            <input className="input" type="number" id="antebraco" inputMode="decimal" step="0.01" min="0" />
+                            <label className="label" htmlFor="braco-esquerdo">Braço <span className="paren">(esquerdo)</span></label>
+                            <input className="input" type="number" id="braco-esquerdo" inputMode="decimal" step="0.01" min="0" />
                         </div>
                     </div>
                     <div className="row">
                         <div className="col">
-                            <label className="label" htmlFor="torax">Busto</label>
+                            <label className="label" htmlFor="braco-forca-direito">Braço <span className="paren">(força)</span> <span className="paren">(direito)</span></label>
+                            <input className="input" type="number" id="braco-forca-direito" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                        <div className="col">
+                            <label className="label" htmlFor="braco-forca-esquerdo">Braço <span className="paren">(força)</span> <span className="paren">(esquerdo)</span></label>
+                            <input className="input" type="number" id="braco-forca-esquerdo" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            <label className="label" htmlFor="antebraco-direito">Antebraço <span className="paren">(direito)</span></label>
+                            <input className="input" type="number" id="antebraco-direito" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                        <div className="col">
+                            <label className="label" htmlFor="antebraco-esquerdo">Antebraço <span className="paren">(esquerdo)</span></label>
+                            <input className="input" type="number" id="antebraco-esquerdo" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            <label className="label" htmlFor="coxa-proximal-direita">Coxa <span className="paren">(proximal) (direita)</span></label>
+                            <input className="input" type="number" id="coxa-proximal-direita" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                        <div className="col">
+                            <label className="label" htmlFor="coxa-proximal-esquerda">Coxa <span className="paren">(proximal) (esquerda)</span></label>
+                            <input className="input" type="number" id="coxa-proximal-esquerda" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            <label className="label" htmlFor="coxa-distal-direita">Coxa <span className="paren">(distal) (direita)</span></label>
+                            <input className="input" type="number" id="coxa-distal-direita" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                        <div className="col">
+                            <label className="label" htmlFor="coxa-distal-esquerda">Coxa <span className="paren">(distal) (esquerda)</span></label>
+                            <input className="input" type="number" id="coxa-distal-esquerda" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            <label className="label" htmlFor="panturrilha-direita">Panturrilha <span className="paren">(direita)</span></label>
+                            <input className="input" type="number" id="panturrilha-direita" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                        <div className="col">
+                            <label className="label" htmlFor="panturrilha-esquerda">Panturrilha <span className="paren">(esquerda)</span></label>
+                            <input className="input" type="number" id="panturrilha-esquerda" inputMode="decimal" step="0.01" min="0" />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col">
+                            <label className="label" htmlFor="torax">Tórax</label>
                             <input className="input" type="number" id="torax" inputMode="decimal" step="0.01" min="0" />
                         </div>
                         <div className="col">
@@ -154,57 +276,10 @@ const Cadastro = () => {
                             <label className="label" htmlFor="quadril">Quadril</label>
                             <input className="input" type="number" id="quadril" inputMode="decimal" step="0.01" min="0" />
                         </div>
-                        <div className="col">
-                            <label className="label" htmlFor="coxa-proximal">Coxa (proximal)</label>
-                            <input className="input" type="number" id="coxa-proximal" inputMode="decimal" step="0.01" min="0" />
-                        </div>
-                    </div>
-                    <div className="row">
-                        <div className="col">
-                            <label className="label" htmlFor="panturrilha">Panturrilha</label>
-                            <input className="input" type="number" id="panturrilha" inputMode="decimal" step="0.01" min="0" />
-                        </div>
-                        <div className="col">
-                            <label className="label" htmlFor="coxa-distal">Coxa (distal)</label>
-                            <input className="input" type="number" id="coxa-distal" inputMode="decimal" step="0.01" min="0" />
-                        </div>
+                        <div className="col" />
                     </div>
 
-                                        <button type="button" className="button" onClick={() => {
-                        try {
-                            const getEl = (id) => document.getElementById(id);
-                            const getNumber = (id) => {
-                                const el = getEl(id);
-                                if (!el) return NaN;
-                                const v = parseFloat((el.value || '').toString().replace(',', '.'));
-                                return Number.isNaN(v) ? NaN : v;
-                            };
-                            const nome = (getEl('nome')?.value || '').toString().trim();
-                            if (nome) {
-                                try { localStorage.setItem('medfit_user_name', nome); } catch {}
-                            }
-                            const peso = getNumber('peso');
-                            const altura = getNumber('altura');
-                            const massaProxy = [
-                                getNumber('torax'),
-                                getNumber('coxa-proximal'),
-                                getNumber('coxa-distal'),
-                                getNumber('panturrilha'),
-                                getNumber('braco'),
-                                getNumber('antebraco'),
-                                getNumber('quadril'),
-                                getNumber('cintura'),
-                            ].filter((x) => !Number.isNaN(x)).reduce((a, b) => a + b, 0);
-                            const massa = Number.isNaN(massaProxy) || massaProxy === 0 ? undefined : massaProxy;
-                            const cintura = getNumber('cintura');
-                            const quadril = getNumber('quadril');
-                            const lastDate = (typeof window !== 'undefined' && typeof endDate?.toLocaleDateString === 'function') ? endDate.toLocaleDateString() : undefined;
-                            try { if (lastDate) localStorage.setItem('medfit_last_eval_date', lastDate); } catch {}
-                            navigate('/home', { state: { newEntry: { peso, massa, altura, cintura, quadril }, name: nome, date: lastDate } });
-                        } catch (e) {
-                            navigate('/home');
-                        }
-                    }}>
+                    <button type="button" className="button" onClick={handleCadastrar}>
                         <span className="button-text">Cadastrar</span>
                     </button>
                 </div>

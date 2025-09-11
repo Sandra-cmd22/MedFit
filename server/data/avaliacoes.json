@@ -1,0 +1,64 @@
+[
+  {
+    "id": "1757607103081",
+    "clienteId": "1757605003430",
+    "clienteNome": "Fernando",
+    "medidas": {
+      "bracoDireito": 72,
+      "bracoEsquerdo": 71
+    },
+    "dataAvaliacao": "2025-09-11T16:11:43.081Z"
+  },
+  {
+    "id": "1757607206788",
+    "clienteId": "1757606826213",
+    "clienteNome": "Joao silva",
+    "startDate": "2025-09-11T16:12:14.684Z",
+    "endDate": "2025-09-11T16:12:14.684Z",
+    "medidas": {
+      "bracoDireito": "39",
+      "bracoEsquerdo": "39",
+      "bracoForcaDireito": "41",
+      "bracoForcaEsquerdo": "41",
+      "antebracoDireito": "33",
+      "antebracoEsquerdo": "32",
+      "coxaProximalDireita": "59",
+      "coxaProximalEsquerda": "59",
+      "coxaDistalDireita": "58",
+      "coxaDistalEsquerda": "58",
+      "panturrilhaDireita": "43",
+      "panturrilhaEsquerda": "43",
+      "torax": "106",
+      "cintura": "93",
+      "quadril": "101"
+    },
+    "evaluationDate": "2025-09-11T16:13:26.773Z",
+    "dataAvaliacao": "2025-09-11T16:13:26.788Z"
+  },
+  {
+    "id": "1757607957512",
+    "clienteId": "1757606826213",
+    "clienteNome": "Joao silva",
+    "startDate": "2025-09-11T16:24:49.688Z",
+    "endDate": "2025-09-11T16:24:49.688Z",
+    "medidas": {
+      "bracoDireito": "42",
+      "bracoEsquerdo": "42",
+      "bracoForcaDireito": "43",
+      "bracoForcaEsquerdo": "43",
+      "antebracoDireito": "34",
+      "antebracoEsquerdo": "34",
+      "coxaProximalDireita": "59",
+      "coxaProximalEsquerda": "59",
+      "coxaDistalDireita": "55",
+      "coxaDistalEsquerda": "55",
+      "panturrilhaDireita": "44",
+      "panturrilhaEsquerda": "44",
+      "torax": "107",
+      "cintura": "94",
+      "quadril": "108"
+    },
+    "evaluationDate": "2025-09-11T16:25:57.489Z",
+    "dataAvaliacao": "2025-09-11T16:25:57.512Z"
+  }
+]

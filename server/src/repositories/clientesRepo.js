@@ -1,79 +1,99 @@
-import db from "../db/index.js";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-export const clientesRepo = {
-  /**
-   * Lista todos os clientes
-   */
-  findAll() {
-    return db.prepare("SELECT * FROM clientes ORDER BY nome").all();
-  },
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dataPath = path.join(__dirname, '../../data');
+const clientesPath = path.join(dataPath, 'clientes.json');
 
-  /**
-   * Busca cliente por ID
-   */
-  findById(id) {
-    return db.prepare("SELECT * FROM clientes WHERE id = ?").get(id);
-  },
+// Garantir que a pasta data existe
+if (!fs.existsSync(dataPath)) {
+  fs.mkdirSync(dataPath, { recursive: true });
+}
 
-  /**
-   * Busca cliente por nome (fuzzy search)
-   */
-  findByNome(nome) {
-    return db.prepare("SELECT * FROM clientes WHERE nome LIKE ? ORDER BY nome").all(`%${nome}%`);
-  },
+// Inicializar arquivo de clientes se não existir
+if (!fs.existsSync(clientesPath)) {
+  fs.writeFileSync(clientesPath, JSON.stringify([], null, 2));
+}
 
-  /**
-   * Cria um novo cliente
-   */
-  create(cliente) {
-    const stmt = db.prepare(`
-      INSERT INTO clientes (nome, telefone, nascimento, sexo)
-      VALUES (?, ?, ?, ?)
-    `);
-    
-    const result = stmt.run(
-      cliente.nome,
-      cliente.telefone || null,
-      cliente.nascimento || null,
-      cliente.sexo || null
-    );
-    
-    return { id: result.lastInsertRowid, ...cliente };
-  },
-
-  /**
-   * Atualiza um cliente
-   */
-  update(id, cliente) {
-    const stmt = db.prepare(`
-      UPDATE clientes 
-      SET nome = ?, telefone = ?, nascimento = ?, sexo = ?
-      WHERE id = ?
-    `);
-    
-    const result = stmt.run(
-      cliente.nome,
-      cliente.telefone || null,
-      cliente.nascimento || null,
-      cliente.sexo || null,
-      id
-    );
-    
-    return result.changes > 0;
-  },
-
-  /**
-   * Remove um cliente
-   */
-  delete(id) {
-    const result = db.prepare("DELETE FROM clientes WHERE id = ?").run(id);
-    return result.changes > 0;
-  },
-
-  /**
-   * Conta total de clientes
-   */
-  count() {
-    return db.prepare("SELECT COUNT(*) as total FROM clientes").get().total;
+const readClientes = () => {
+  try {
+    const data = fs.readFileSync(clientesPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Erro ao ler clientes:', error);
+    return [];
   }
-}; 
+};
+
+const writeClientes = (clientes) => {
+  try {
+    fs.writeFileSync(clientesPath, JSON.stringify(clientes, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar clientes:', error);
+    return false;
+  }
+};
+
+export const createCliente = async (clienteData) => {
+  const clientes = readClientes();
+  const novoCliente = {
+    id: Date.now().toString(),
+    ...clienteData,
+    dataCadastro: new Date().toISOString()
+  };
+  
+  clientes.push(novoCliente);
+  
+  if (writeClientes(clientes)) {
+    return novoCliente;
+  } else {
+    throw new Error('Erro ao salvar cliente');
+  }
+};
+
+export const getAllClientes = async () => {
+  return readClientes();
+};
+
+export const getClienteById = async (id) => {
+  const clientes = readClientes();
+  return clientes.find(cliente => cliente.id === id);
+};
+
+export const updateCliente = async (id, clienteData) => {
+  const clientes = readClientes();
+  const index = clientes.findIndex(cliente => cliente.id === id);
+  
+  if (index === -1) {
+    return null;
+  }
+  
+  clientes[index] = {
+    ...clientes[index],
+    ...clienteData,
+    id, // Garantir que o ID não seja alterado
+    dataAtualizacao: new Date().toISOString()
+  };
+  
+  if (writeClientes(clientes)) {
+    return clientes[index];
+  } else {
+    throw new Error('Erro ao atualizar cliente');
+  }
+};
+
+export const deleteCliente = async (id) => {
+  const clientes = readClientes();
+  const index = clientes.findIndex(cliente => cliente.id === id);
+  
+  if (index === -1) {
+    return false;
+  }
+  
+  clientes.splice(index, 1);
+  
+  return writeClientes(clientes);
+};

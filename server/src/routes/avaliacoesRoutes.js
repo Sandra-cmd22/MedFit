@@ -1,33 +1,21 @@
-import { Router } from "express";
-import { avaliacoesController } from "../controllers/avaliacoesController.js";
+import express from 'express';
+import { createAvaliacao, getAllAvaliacoes, getAvaliacaoById, updateAvaliacao, deleteAvaliacao } from '../controllers/avaliacoesController.js';
 
-const router = Router();
+const router = express.Router();
 
-// GET /api/avaliacoes - Lista todas as avaliações
-router.get("/", avaliacoesController.listarTodas);
+// GET /api/avaliacoes - Listar todas as avaliações
+router.get('/', getAllAvaliacoes);
 
-// GET /api/avaliacoes/periodo?inicio=...&fim=... - Busca avaliações por período
-router.get("/periodo", avaliacoesController.buscarPorPeriodo);
+// GET /api/avaliacoes/:id - Buscar avaliação por ID
+router.get('/:id', getAvaliacaoById);
 
-// GET /api/avaliacoes/stats - Estatísticas das avaliações
-router.get("/stats", avaliacoesController.estatisticas);
+// POST /api/avaliacoes - Criar nova avaliação
+router.post('/', createAvaliacao);
 
-// GET /api/avaliacoes/cliente/:clienteId - Lista avaliações de um cliente
-router.get("/cliente/:clienteId", avaliacoesController.listarPorCliente);
+// PUT /api/avaliacoes/:id - Atualizar avaliação
+router.put('/:id', updateAvaliacao);
 
-// GET /api/avaliacoes/cliente/:clienteId/ultima - Busca última avaliação de um cliente
-router.get("/cliente/:clienteId/ultima", avaliacoesController.buscarUltimaPorCliente);
+// DELETE /api/avaliacoes/:id - Deletar avaliação
+router.delete('/:id', deleteAvaliacao);
 
-// GET /api/avaliacoes/:id - Busca avaliação por ID
-router.get("/:id", avaliacoesController.buscarPorId);
-
-// POST /api/avaliacoes - Cria nova avaliação
-router.post("/", avaliacoesController.criar);
-
-// PUT /api/avaliacoes/:id - Atualiza avaliação
-router.put("/:id", avaliacoesController.atualizar);
-
-// DELETE /api/avaliacoes/:id - Remove avaliação
-router.delete("/:id", avaliacoesController.remover);
-
-export default router; 
+export default router;
