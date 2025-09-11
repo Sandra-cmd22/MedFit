@@ -5,6 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav.jsx';
 import './Cadastro.css';
+import { API_ENDPOINTS } from '../config/api.js';
 registerLocale('pt-BR', ptBR);
 
 const Cadastro = () => {
@@ -15,7 +16,7 @@ const Cadastro = () => {
     const [clientes, setClientes] = useState([]);
 
     useEffect(() => {
-      fetch('/api/clientes')
+      fetch(API_ENDPOINTS.clientes)
         .then(res => res.json())
         .then(data => setClientes(data));
     }, []);
@@ -73,7 +74,7 @@ const Cadastro = () => {
             };
             
             // Salvar na API
-            const response = await fetch('/api/clientes', {
+            const response = await fetch(API_ENDPOINTS.clientes, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cliente)

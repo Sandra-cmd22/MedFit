@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Clientes.css';
 import BottomNav from '../components/BottomNav.jsx';
+import { API_ENDPOINTS } from '../config/api.js';
 
 const Clientes = () => {
 	const navigate = useNavigate();
@@ -12,7 +13,7 @@ const Clientes = () => {
 	const loadClientes = async () => {
 		setLoading(true);
 		try {
-			const response = await fetch('/api/clientes');
+			const response = await fetch(API_ENDPOINTS.clientes);
 			const data = await response.json();
 			setClientes(data);
 		} catch (error) {

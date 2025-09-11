@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Importe useNavigate
 import './Home.css';
 import BottomNav from '../components/BottomNav.jsx';
+import { API_ENDPOINTS } from '../config/api.js';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -176,7 +177,7 @@ const Home = () => {
         }
         
         try {
-            const response = await fetch('/api/clientes');
+            const response = await fetch(API_ENDPOINTS.clientes);
             const clientes = await response.json();
             const cliente = clientes.find(c => c.nome === userName);
             if (cliente) {

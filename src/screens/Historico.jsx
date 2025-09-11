@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Historico.css';
 import BottomNav from '../components/BottomNav.jsx';
+import { API_ENDPOINTS } from '../config/api.js';
 
 const Historico = () => {
     const location = useLocation();
@@ -19,7 +20,7 @@ const Historico = () => {
             try {
                 // Buscar dados do cliente
                 if (!clienteData) {
-                    const clientesResponse = await fetch('/api/clientes');
+                    const clientesResponse = await fetch(API_ENDPOINTS.clientes);
                     const clientes = await clientesResponse.json();
                     const cliente = clientes.find(c => c.nome === userName);
                     if (cliente) {
@@ -28,7 +29,7 @@ const Historico = () => {
                 }
 
                 // Buscar avaliações do cliente
-                const avaliacoesResponse = await fetch('/api/avaliacoes');
+                const avaliacoesResponse = await fetch(API_ENDPOINTS.avaliacoes);
                 const todasAvaliacoes = await avaliacoesResponse.json();
                 const avaliacoesCliente = todasAvaliacoes.filter(a => a.clienteNome === userName);
                 

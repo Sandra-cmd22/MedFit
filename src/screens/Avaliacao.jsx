@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 registerLocale('pt-BR', ptBR);
 import './Avaliacao.css';
 import BottomNav from '../components/BottomNav.jsx';
+import { API_ENDPOINTS } from '../config/api.js';
 
 const Avaliacao = () => {
 	const navigate = useNavigate();
@@ -60,10 +61,10 @@ const Avaliacao = () => {
 		const loadClienteData = async () => {
 			if (!personName) return;
 			
-			try {
-				const response = await fetch('/api/clientes');
-				const clientes = await response.json();
-				const cliente = clientes.find(c => c.nome === personName);
+		try {
+			const response = await fetch(API_ENDPOINTS.clientes);
+			const clientes = await response.json();
+			const cliente = clientes.find(c => c.nome === personName);
 				
 				if (cliente) {
 					// Carregar dados básicos se existirem
@@ -84,7 +85,7 @@ const Avaliacao = () => {
 	const handleAtualizar = async () => {
 		try {
 			// Primeiro, buscar o cliente atual da API
-			const clientesResponse = await fetch('/api/clientes');
+			const clientesResponse = await fetch(API_ENDPOINTS.clientes);
 			const clientes = await clientesResponse.json();
 			const clienteAtual = clientes.find(c => c.nome === personName);
 
@@ -104,7 +105,7 @@ const Avaliacao = () => {
 			};
 
 			// Salvar avaliação na API
-			const evaluationResponse = await fetch('/api/avaliacoes', {
+			const evaluationResponse = await fetch(API_ENDPOINTS.avaliacoes, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(newEvaluation)
@@ -127,7 +128,7 @@ const Avaliacao = () => {
 			};
 
 			// Atualizar cliente na API
-			const clienteResponse = await fetch(`/api/clientes/${clienteAtual.id}`, {
+			const clienteResponse = await fetch(`${API_ENDPOINTS.clientes}/${clienteAtual.id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(clienteAtualizado)
