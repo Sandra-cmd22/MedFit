@@ -6,19 +6,22 @@
 	background: #fff;
 	font-family: 'Poppins', sans-serif;
 	font-size: 14px;
+  
 }
 
 .home-title {
 	font-size: 24px;
 	font-weight: 600;
 	margin: 0 0 12px 0;
-	color: #000;
+	color: #2346a0;
+
 }
 
 .cards-column {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	margin-top: clamp(12px, 6vh, 48px);
 	margin-bottom: 16px;
 }
 
@@ -33,6 +36,7 @@
 	font-size: 16px;
 	color: #333;
 	margin-bottom: 6px;
+	
 }
 
 .card-value {
@@ -54,7 +58,7 @@
 
 .chart-caption {
 	text-align: center;
-	font-size: 12px;
+	font-size: 14px;
 	color: #333;
 	margin-top: 6px;
 }
@@ -99,10 +103,10 @@
 	height: 48px;
 	padding: 0 16px;
 	font-weight: 600;
-	margin: 4px 0 10px 0;
 	cursor: pointer;
 	font-family: 'Poppins', sans-serif;
 	font-size: 14px;
+
 }
 
 .secondary-btn {

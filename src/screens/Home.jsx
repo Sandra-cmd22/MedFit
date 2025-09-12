@@ -186,46 +186,52 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "12px",
-        }}
-      >
-        <h1 className="home-title">{userName}</h1>
-        {updating && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "12px",
-              color: "#0C518D",
-            }}
-          >
-            <span
-              className="material-symbols-rounded"
-              style={{ fontSize: "16px", animation: "spin 1s linear infinite" }}
+      {/* Título fixo no topo */}
+      <div className="home-header">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "12px",
+          }}
+        >
+          <h1 className="home-title">{userName}</h1>
+          {updating && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#0C518D",
+              }}
             >
-              refresh
-            </span>
-            Atualizando...
-          </div>
-        )}
+              <span
+                className="material-symbols-rounded"
+                style={{ fontSize: "16px", animation: "spin 1s linear infinite" }}
+              >
+                refresh
+              </span>
+              Atualizando...
+            </div>
+          )}
+        </div>
       </div>
 
-      {clienteData && (
-        <div style={{ marginBottom: "20px", fontSize: "14px", color: "#666" }}>
-          <div>Idade: {clienteData.idade || "-"} anos</div>
-          <div>Altura: {clienteData.altura || "-"} cm</div>
-          <div>Peso: {clienteData.peso || "-"} kg</div>
-          <div>Sexo: {clienteData.sexo || "-"}</div>
-        </div>
-      )}
+      {/* Conteúdo centralizado */}
+      <div className="home-content">
 
-      <div className="cards-column">
+        {clienteData && (
+          <div style={{ fontSize: "14px", color: "#666", textAlign: "center" }}>
+            <div>Idade: {clienteData.idade || "-"} anos</div>
+            <div>Altura: {clienteData.altura || "-"} cm</div>
+            <div>Peso: {clienteData.peso || "-"} kg</div>
+            <div>Sexo: {clienteData.sexo || "-"}</div>
+          </div>
+        )}
+
+        <div className="cards-column">
         <div className="card">
           <div className="card-header">IMC</div>
           <div className="card-value" style={{ color: "#0C518D" }}>
@@ -263,9 +269,9 @@ const Home = () => {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      <button
+        <button
         className="primary-btn"
         type="button"
         onClick={() => {
@@ -273,9 +279,9 @@ const Home = () => {
         }}
       >
         Adicionar nova Avaliação
-      </button>
+        </button>
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
         <button
           className="secondary-btn"
           type="button"
@@ -317,7 +323,9 @@ const Home = () => {
             refresh
           </span>
         </button>
+        </div>
       </div>
+
       <BottomNav />
     </div>
   );

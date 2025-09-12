@@ -50,6 +50,7 @@ const Avaliacao = () => {
     panturrilhaDireita: "",
     panturrilhaEsquerda: "",
     torax: "",
+    busto: "",
     cintura: "",
     quadril: "",
   });
@@ -586,6 +587,24 @@ const Avaliacao = () => {
             />
           </div>
           <div className="col-av">
+            <label className="label-av" htmlFor="busto">
+              Busto
+            </label>
+            <input
+              className="input-av"
+              type="number"
+              id="busto"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={medidas.busto}
+              onChange={(e) => handleMedidaChange("busto", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="row-av">
+          <div className="col-av">
             <label className="label-av" htmlFor="cintura">
               Cintura
             </label>
@@ -600,9 +619,6 @@ const Avaliacao = () => {
               onChange={(e) => handleMedidaChange("cintura", e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="row-av">
           <div className="col-av">
             <label className="label-av" htmlFor="quadril">
               Quadril
@@ -618,7 +634,6 @@ const Avaliacao = () => {
               onChange={(e) => handleMedidaChange("quadril", e.target.value)}
             />
           </div>
-          <div className="col-av" />
         </div>
 
         <button

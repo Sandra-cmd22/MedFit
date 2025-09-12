@@ -62,6 +62,7 @@ const Cadastro = () => {
         antebracoDireito: getNumber("antebraco-direito"),
         antebracoEsquerdo: getNumber("antebraco-esquerdo"),
         torax: getNumber("torax"),
+        busto: getNumber("busto"),
         cintura: getNumber("cintura"),
         quadril: getNumber("quadril"),
         coxaProximalDireita: getNumber("coxa-proximal-direita"),
@@ -358,6 +359,21 @@ const Cadastro = () => {
               />
             </div>
             <div className="col">
+              <label className="label" htmlFor="busto">
+                Busto
+              </label>
+              <input
+                className="input"
+                type="number"
+                id="busto"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+          <div className="row">
+            <div className="col">
               <label className="label" htmlFor="cintura">
                 Cintura
               </label>
@@ -370,8 +386,6 @@ const Cadastro = () => {
                 min="0"
               />
             </div>
-          </div>
-          <div className="row">
             <div className="col">
               <label className="label" htmlFor="quadril">
                 Quadril
@@ -385,7 +399,6 @@ const Cadastro = () => {
                 min="0"
               />
             </div>
-            <div className="col" />
           </div>
 
           <button type="button" className="button" onClick={handleCadastrar}>

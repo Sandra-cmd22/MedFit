@@ -6,7 +6,7 @@
 }
 
 .scroll-view {
-    padding: 20px;
+    padding: 12px;
     background-color: #fff;
     flex: 1;
     padding-bottom: 80px;
@@ -40,7 +40,7 @@
 .date-container {
     display: flex;
     justify-content: flex-start;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 20px;
 }
 
@@ -50,49 +50,7 @@
     align-items: flex-start;
 }
 
-.date-label {
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 5px;
-}
 
-.date-field {
-    background-color: #0C4A6E;      /* Fundo azul */
-    border-radius: 8px;
-    padding: 0 12px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;                    /* Texto branco */
-    border: none;                   /* Sem borda */
-    cursor: pointer;                /* Aparência de botão */
-    gap: 8px;                       /* Espaço entre ícone e data */
-    min-width: 120px;               /* Garante largura mínima */
-}
-
-.date-btn {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	background: transparent;
-	border: none;
-	color: #fff;
-	padding: 0;
-	cursor: pointer;
-	height: 38px;
-	align-self: stretch;
-}
-
-.date-icon { font-size: 22px; line-height: 1; color: #fff; }
-
-.date-text {
-	font-size: 16px;
-	background: transparent;
-	border: none;
-	color: #fff;
-	padding: 0;
-}
 
 /* Títulos das seções e rótulos dos inputs */
 .section-title {
@@ -103,7 +61,8 @@
 }
 
 .label {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
     color: #555;
     margin-bottom: 5px;
 	
@@ -113,22 +72,23 @@
 .input {
     height: 40px;
     font-family: 'Poppins', sans-serif;
-    font-size: 15px;
-    border-radius: 8px;
+    font-size: 16px;
+    border-radius: 4px;
     background-color: #fff;
     border: 1px solid #ccc;
     padding: 0 12px;
     width: 100%;
     box-sizing: border-box;
     color: #555;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 /* Layout de duas colunas */
 .row {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .col {
@@ -168,4 +128,4 @@
 }
 
 /* Texto entre parênteses nas labels */
-.paren { font-size: 10px; }
+.paren { font-size: 11px; }

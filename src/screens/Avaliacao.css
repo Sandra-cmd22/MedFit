@@ -11,7 +11,7 @@
 
 .scroll-view-av {
 	flex-grow: 1;
-	padding: 16px;
+	padding: 12px;
 	background-color: #fff;
 }
 
@@ -47,8 +47,8 @@
 /* Datas */
 .date-row-av {
 	display: flex;
-	gap: 16px;
-	margin-bottom: 16px;
+	gap: 12px;
+	margin-bottom: 12px;
 }
 
 .date-group-av {
@@ -59,6 +59,7 @@
 
 .date-label-av {
 	font-size: 14px;
+	font-weight: 500;
 	color: #555;
 	margin-bottom: 6px;
 }
@@ -120,8 +121,9 @@
 .col-av { flex: 1; }
 
 .label-av {
-	font-size: 14px;
+	font-size: 16px;
 	color: #555;
+	font-weight: 500;
 	margin-bottom: 5px;
 	display: block;
 }
@@ -130,11 +132,12 @@
 	width: 100%;
 	background-color: #ffffff;
 	border: 1px solid #ccc;
-	border-radius: 5px;
+	border-radius: 4px;
 	height: 40px;
 	padding: 0 12px;
 	box-sizing: border-box;
 	color: #000;
+	margin-bottom: 12px;
 }
 
 .primary-btn-av {
@@ -176,4 +179,4 @@
 }
 
 /* Texto entre parênteses nas labels */
-.paren { font-size: 10px; }
+.paren { font-size: 11px; }
