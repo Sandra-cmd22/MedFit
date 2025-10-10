@@ -1,12 +1,12 @@
 import express from 'express';
-import { listarClientes, salvarCliente } from 'src/database/clientes.json';
+import cors from 'cors';
+import { listarClientes, salvarCliente } from './clientes.js';
 
 const app = express();
 const PORT = 3001;
 
+app.use(cors());
 app.use(express.json());
-
-const filePath = path.join(__dirname, 'src/database/clientes.json');
 
 // Listar clientes
 app.get('/api/clientes', (req, res) => {

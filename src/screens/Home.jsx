@@ -14,7 +14,6 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; // Importe useNavigate
 import { db } from "../../firebase.config.js";
 import BottomNav from "../components/BottomNav.jsx";
-import "./Home.css";
 
 // Registrar componentes do Chart.js
 ChartJS.register(
@@ -36,9 +35,12 @@ function computeBMI(peso, altura) {
     !altura ||
     Number.isNaN(peso) ||
     Number.isNaN(altura) ||
-    altura <= 0
+    altura <= 0 ||
+    peso <= 0
   )
     return null;
+  
+  // Converter altura para metros se estiver em cm (altura > 3)
   const h = altura > 3 ? altura / 100 : altura;
   const bmi = peso / (h * h);
   return Math.round(bmi * 10) / 10; // Arredonda para 1 casa decimal
@@ -50,7 +52,8 @@ function computeRCQ(cintura, quadril) {
     !quadril ||
     Number.isNaN(cintura) ||
     Number.isNaN(quadril) ||
-    quadril <= 0
+    quadril <= 0 ||
+    cintura <= 0
   )
     return null;
   const rcq = cintura / quadril;
@@ -170,6 +173,8 @@ const Home = () => {
   const quadril =
     clienteData?.medidas?.quadril || location?.state?.newEntry?.quadril;
 
+
+
   const imcAtual = computeBMI(peso, altura);
   const rcqAtual = computeRCQ(cintura, quadril);
   const bmiCategory = getBMICategory(imcAtual);
@@ -177,39 +182,29 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="home-container">
-        <h1 className="home-title">Carregando...</h1>
+      <div className="min-h-screen bg-white font-poppins p-4 pb-20">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-5 text-blue-700">Carregando...</h1>
         <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="home-container">
+    <div className="min-h-screen bg-white font-poppins p-4 pb-20">
       {/* Título fixo no topo */}
-      <div className="home-header">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "12px",
-          }}
-        >
-          <h1 className="home-title">{userName}</h1>
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#0C518D',
+            marginBottom: '20px',
+            fontFamily: 'Racing Sans One, cursive'
+          }}>{userName}</h1>
           {updating && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "12px",
-                color: "#0C518D",
-              }}
-            >
+            <div className="flex items-center gap-2 text-xs text-blue-700">
               <span
-                className="material-symbols-rounded"
-                style={{ fontSize: "16px", animation: "spin 1s linear infinite" }}
+                className="material-symbols-rounded text-base animate-spin"
               >
                 refresh
               </span>
@@ -220,82 +215,125 @@ const Home = () => {
       </div>
 
       {/* Conteúdo centralizado */}
-      <div className="home-content">
+      <div className="flex-1 flex flex-col gap-6 pt-5">
 
-        {clienteData && (
-          <div style={{ fontSize: "14px", color: "#666", textAlign: "center" }}>
-            <div>Idade: {clienteData.idade || "-"} anos</div>
-            <div>Altura: {clienteData.altura || "-"} cm</div>
-            <div>Peso: {clienteData.peso || "-"} kg</div>
-            <div>Sexo: {clienteData.sexo || "-"}</div>
+        {(clienteData || location?.state?.newEntry || location?.state?.name) && (
+          <div style={{
+            backgroundColor: '#A6D0F4',
+            border: '1px solid #A6D0F4',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#0C518D',
+              marginBottom: '8px'
+            }}>{userName}</h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              fontSize: '14px',
+              color: '#0C518D'
+            }}>
+              {(clienteData?.idade || location?.state?.newEntry?.idade) && <div>Idade: {clienteData?.idade || location?.state?.newEntry?.idade} anos</div>}
+              {(clienteData?.altura || location?.state?.newEntry?.altura) && <div>Altura: {clienteData?.altura || location?.state?.newEntry?.altura} cm</div>}
+              {(clienteData?.peso || location?.state?.newEntry?.peso) && <div>Peso: {clienteData?.peso || location?.state?.newEntry?.peso} kg</div>}
+              {(clienteData?.sexo || location?.state?.newEntry?.sexo) && <div>Sexo: {clienteData?.sexo || location?.state?.newEntry?.sexo}</div>}
+            </div>
+            {/* Exibir medidas se disponíveis */}
+            {clienteData.medidas && (clienteData.medidas.cintura || clienteData.medidas.quadril) && (
+              <div style={{
+                marginTop: '8px',
+                fontSize: '12px',
+                color: '#0C518D',
+                borderTop: '1px solid rgba(12, 81, 141, 0.2)',
+                paddingTop: '8px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Medidas:</div>
+                {clienteData.medidas.cintura && <div>Cintura: {clienteData.medidas.cintura} cm</div>}
+                {clienteData.medidas.quadril && <div>Quadril: {clienteData.medidas.quadril} cm</div>}
+              </div>
+            )}
           </div>
         )}
 
-        <div className="cards-column">
-        <div className="card">
-          <div className="card-header">IMC</div>
-          <div className="card-value" style={{ color: "#0C518D" }}>
+        <div className="flex flex-col gap-3 mb-4 mt-3">
+        <div className="bg-medfit-gray border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div style={{
+            fontSize: '24px',
+            fontWeight: '400',
+            color: '#374151',
+            marginBottom: '8px'
+          }}>IMC</div>
+          <div style={{
+            fontSize: '24px',
+            fontWeight: '400',
+            color: '#0C518D'
+          }}>
             {imcAtual ?? "-"}
           </div>
           {bmiCategory && (
-            <div
-              className="card-category"
-              style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
-            >
+            <div className="text-xs text-gray-600 mt-1">
               {bmiCategory}
             </div>
           )}
         </div>
 
-        <div className="card">
-          <div className="card-header">RCQ</div>
-          <div className="card-value" style={{ color: "#0C518D" }}>
+        <div className="bg-medfit-gray border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div style={{
+            fontSize: '24px',
+            fontWeight: '400',
+            color: '#374151',
+            marginBottom: '8px'
+          }}>RCQ</div>
+          <div style={{
+            fontSize: '24px',
+            fontWeight: '400',
+            color: '#0C518D'
+          }}>
             {rcqAtual ?? "-"}
           </div>
           {rcqCategory && (
-            <div
-              className="card-category"
-              style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
-            >
+            <div className="text-xs text-gray-600 mt-1">
               {rcqCategory}
             </div>
           )}
           {cintura && quadril && (
-            <div
-              className="card-relation"
-              style={{ fontSize: "10px", color: "#999", marginTop: "2px" }}
-            >
+            <div className="text-xs text-gray-500 mt-1">
               {cintura}cm / {quadril}cm
             </div>
           )}
         </div>
         </div>
 
-        <button
-        className="primary-btn"
-        type="button"
-        onClick={() => {
-          navigate("/avaliacao", { state: { name: userName } });
-        }}
-      >
-        Adicionar nova Avaliação
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            className="w-full bg-medfit-blue text-white rounded-lg h-12 px-4 font-semibold font-poppins text-sm cursor-pointer"
+            type="button"
+            onClick={() => {
+              navigate("/avaliacao", { state: { name: userName } });
+            }}
+          >
+            Adicionar nova Avaliação
+          </button>
 
-        <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+          <div className="flex gap-2">
         <button
-          className="secondary-btn"
+          className="flex-1 bg-gray-100 text-blue-700 rounded-lg h-12 px-4 font-medium font-poppins text-sm cursor-pointer border border-blue-700"
           type="button"
           onClick={() => {
             navigate("/historico", { state: { clienteData, userName } });
           }}
-          style={{ flex: 1 }}
         >
           Ver Histórico completo
         </button>
 
         <button
-          className="secondary-btn"
-          type="button"
+          className="flex-shrink-0 w-auto px-4 flex items-center gap-2 bg-gray-100 text-blue-700 rounded-lg h-12 font-medium font-poppins text-sm cursor-pointer disabled:opacity-50 border-2 border-azulCustom"
+
           onClick={() => {
             const userName =
               typeof window !== "undefined"
@@ -306,26 +344,17 @@ const Home = () => {
             }
           }}
           disabled={updating}
-          style={{
-            flex: "0 0 auto",
-            width: "auto",
-            padding: "0 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
           title="Atualizar dados"
         >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: "18px" }}
-          >
+          <span className="material-symbols-rounded text-lg">
             refresh
           </span>
         </button>
+          </div>
         </div>
       </div>
 
+      <div style={{ marginBottom: '100px' }}></div>
       <BottomNav />
     </div>
   );

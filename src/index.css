@@ -1,14 +1,34 @@
 /* Limpar o estilo padrão do navegador */
-body, html {
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: sans-serif;
-  background-color: #fff; /* Fundo global branco */
+}
+
+body, html {
+  font-family: 'Poppins', sans-serif;
+  background-color: #fff;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* Garantir que as classes Tailwind funcionem */
+.font-poppins {
+  font-family: 'Poppins', sans-serif;
+}
+
+.bg-medfit-blue {
+  background-color: #0C4A6E;
+}
+
+.text-medfit-primary {
+  color: #007bff;
+}
+
+.text-medfit-secondary {
+  color: #6a717c;
 }
 
 /* Custom DatePicker Styles */

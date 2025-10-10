@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1757719881347,
+    "nome": "João Silva",
+    "idade": 28,
+    "altura": 175,
+    "peso": 75,
+    "sexo": "M",
+    "medidas": {
+      "cintura": 85,
+      "quadril": 95
+    }
+  },
+  {
+    "id": 1757719884780,
+    "nome": "Maria Santos",
+    "idade": 32,
+    "altura": 165,
+    "peso": 60,
+    "sexo": "F",
+    "medidas": {
+      "cintura": 75,
+      "quadril": 90
+    }
+  },
+  {
+    "id": 1757719888531,
+    "nome": "Pedro Oliveira da Silva Santos",
+    "idade": 45,
+    "altura": 180,
+    "peso": 85,
+    "sexo": "M",
+    "medidas": {
+      "cintura": 95,
+      "quadril": 105
+    }
+  }
+]

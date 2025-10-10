@@ -1,11 +1,8 @@
-import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
-import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import Calendar from "../components/Calendar.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../../firebase.config";
 import BottomNav from "../components/BottomNav.jsx";
-import "./Avaliacao.css";
 import {
   addDoc,
   collection,
@@ -15,7 +12,6 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-registerLocale("pt-BR", ptBR);
 
 const Avaliacao = () => {
   const navigate = useNavigate();
@@ -27,10 +23,10 @@ const Avaliacao = () => {
       : "") ||
     "";
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const [dataAvaliacao] = useState(new Date()); // Data automática (hoje)
+  const [dataFinal, setDataFinal] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  // Estado para dados básicos e medidas
   const [dadosBasicos, setDadosBasicos] = useState({
     idade: "",
     peso: "",
@@ -50,10 +46,52 @@ const Avaliacao = () => {
     panturrilhaDireita: "",
     panturrilhaEsquerda: "",
     torax: "",
-    busto: "",
+    abdomen: "",
     cintura: "",
     quadril: "",
   });
+
+  // Função para renderizar label com texto entre parênteses menor
+  const renderLabel = (label) => {
+    // Se o label já é um JSX element, retorna como está
+    if (typeof label !== 'string') {
+      return label;
+    }
+    
+    const parts = label.split(/(\([^)]+\))/);
+    return parts.map((part, index) => {
+      if (part.startsWith('(') && part.endsWith(')')) {
+        return <span key={index} className="text-parentheses">{part}</span>;
+      }
+      return part;
+    });
+  };
+
+  // Componente de input reutilizável
+  const InputField = ({ id, label, type = "text", value, onChange, ...props }) => (
+    <div className="flex-1">
+      <label className="text-sm text-gray-700 font-medium mb-1 block" htmlFor={id}>
+        {renderLabel(label)}
+      </label>
+      <input
+        className="w-full bg-white border border-gray-300 h-10 px-3 box-border text-black"
+        style={{ borderRadius: '8px' }}
+        type={type}
+        id={id}
+        value={value}
+        onChange={onChange}
+        autoComplete="off"
+        {...props}
+      />
+    </div>
+  );
+
+  // Componente de linha com dois inputs
+  const InputRow = ({ children }) => (
+    <div className="flex justify-between gap-3 mb-3-custom">
+      {children}
+    </div>
+  );
 
   // Função para atualizar dados básicos
   const handleDadosBasicosChange = (field, value) => {
@@ -71,7 +109,6 @@ const Avaliacao = () => {
     }));
   };
 
-  // Carregar dados do cliente ao abrir a tela
   useEffect(() => {
     const loadClienteData = async () => {
       if (!personName) return;
@@ -114,33 +151,27 @@ const Avaliacao = () => {
       const clientesSnapshot = await getDocs(q);
 
       if (clientesSnapshot.empty) {
-        alert(
-          "Cliente não encontrado. Por favor, cadastre o cliente primeiro."
-        );
+        alert("Cliente não encontrado!");
         return;
       }
 
       const clienteDoc = clientesSnapshot.docs[0];
       const clienteAtual = clienteDoc.data();
-      const clienteId = clienteDoc.id; // Pega o ID único do documento
+      const clienteDocRef = doc(db, "clientes", clienteDoc.id);
 
-      // 2. Preparar dados da nova avaliação
-      const newEvaluation = {
-        clienteId, // Usa o ID do documento do cliente
+      // 2. Salvar nova avaliação na coleção 'avaliacoes'
+      const avaliacaoData = {
+        clienteId: clienteDoc.id,
         clienteNome: personName,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        medidas,
-        evaluationDate: new Date().toISOString(),
+        dataAvaliacao: dataAvaliacao.toISOString(),
+        dataFinal: dataFinal.toISOString(),
+        medidas: medidas,
+        dadosBasicos: dadosBasicos,
       };
 
-      // 3. Salvar avaliação na coleção 'avaliacoes'
-      const avaliacoesRef = collection(db, "avaliacoes");
-      await addDoc(avaliacoesRef, newEvaluation);
+      await addDoc(collection(db, "avaliacoes"), avaliacaoData);
 
-      // 4. Atualizar dados do cliente na coleção 'clientes'
-      // Usa o ID do documento para atualizar o cliente específico
-      const clienteDocRef = doc(db, "clientes", clienteId);
+      // 3. Atualizar o cliente com os novos dados
       const clienteAtualizado = {
         ...clienteAtual,
         idade: dadosBasicos.idade || clienteAtual.idade,
@@ -158,491 +189,302 @@ const Avaliacao = () => {
       const existingEvaluations = JSON.parse(
         localStorage.getItem("medfit_evaluations") || "[]"
       );
+
+      const newEvaluation = {
+        id: Date.now().toString(),
+        date: dataAvaliacao.toISOString(),
+        dataFinal: dataFinal.toISOString(),
+        measures: medidas,
+        dadosBasicos: dadosBasicos,
+      };
+
       existingEvaluations.push(newEvaluation);
-      localStorage.setItem(
-        "medfit_evaluations",
-        JSON.stringify(existingEvaluations)
-      );
+      localStorage.setItem("medfit_evaluations", JSON.stringify(existingEvaluations));
 
-      // Atualizar última data de avaliação no localStorage
-      localStorage.setItem(
-        "medfit_last_evaluation_date",
-        new Date().toLocaleDateString("pt-BR")
-      );
-
-      // Navegar para a tela home com os dados atualizados
+      // Navegar para home com os dados atualizados
       navigate("/home", {
         state: {
           name: personName,
-          newEntry: {
-            ...medidas,
-            idade: dadosBasicos.idade || clienteAtual.idade,
-            peso: dadosBasicos.peso || clienteAtual.peso,
-            altura: clienteAtual.altura,
-            cintura: medidas.cintura || "",
-            quadril: medidas.quadril || "",
+          updatedData: {
+            medidas: medidas,
+            dadosBasicos: dadosBasicos,
           },
         },
       });
-
-      alert("Avaliação salva com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar avaliação:", error);
-      alert("Erro ao salvar a avaliação. Tente novamente.");
+      alert("Erro ao salvar avaliação. Tente novamente.");
     }
   };
 
-  return (
-    <div className="container-av">
-      <div className="scroll-view-av">
-        <div className="header-av">
-          <button className="back-btn-av" onClick={() => navigate(-1)}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
+  if (!personName || personName === "Home") {
+    return (
+      <div className="flex flex-col font-poppins min-h-screen bg-white text-sm pb-20">
+        <div className="flex-grow p-3 bg-white">
+          <div className="flex items-center gap-2 pb-2">
+            <button 
+              className="bg-transparent border-none p-1 cursor-pointer"
+              onClick={() => navigate(-1)}
             >
-              arrow_back
+              <span className="material-symbols-rounded text-2xl text-gray-700">arrow_back</span>
+            </button>
+            <h1 className="text-2xl font-medium m-0 text-center text-black flex-1">
+              Avaliação
+            </h1>
+          </div>
+          
+          <div className="text-center py-12">
+            <span className="material-symbols-rounded text-6xl text-gray-300 mb-4 block">
+              person_search
             </span>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Selecione ou Cadastre um Cliente
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Para realizar uma avaliação, você precisa primeiro selecionar um cliente cadastrado ou cadastrar um novo cliente.
+            </p>
+            
+            <div className="flex flex-col gap-3 max-w-sm mx-auto">
+              <button
+                className="w-full bg-blue-700 text-white rounded-lg h-12 px-4 font-semibold font-poppins text-sm cursor-pointer"
+                onClick={() => navigate("/clientes")}
+              >
+                Selecionar Cliente
+              </button>
+              
+              <button
+                className="w-full bg-gray-100 text-blue-700 rounded-lg h-12 px-4 font-medium font-poppins text-sm cursor-pointer border border-blue-700"
+                onClick={() => navigate("/cadastro")}
+              >
+                Cadastrar Novo Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col font-poppins min-h-screen bg-white text-sm pb-20">
+      <div className="flex-grow p-3 bg-white">
+        <div className="flex items-center gap-2 pb-2">
+          <button 
+            className="bg-transparent border-none p-1 cursor-pointer"
+            onClick={() => navigate(-1)}
+          >
+            <span className="material-symbols-rounded text-2xl text-gray-700">arrow_back</span>
           </button>
-          <h1 className="title-av">Avaliação</h1>
+          <h1 className="text-2xl font-medium m-0 text-center text-black flex-1">
+            Avaliação
+          </h1>
         </div>
-        {personName && <div className="person-name">{personName}</div>}
-
-        <div className="date-row-av">
-          <div className="date-group-av">
-            <span className="date-label-av">Data inicial</span>
-            <div className="date-field-av">
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => setStartDate(date)}
-                locale="pt-BR"
-                dateFormat="dd/MM/yyyy"
-                showYearDropdown
-                scrollableYearDropdown
-                yearDropdownItemNumber={15}
-                popperPlacement="bottom-start"
-                popperModifiers={[
-                  { name: "offset", options: { offset: [0, 8] } },
-                  {
-                    name: "preventOverflow",
-                    options: { rootBoundary: "viewport", padding: 8 },
-                  },
-                  {
-                    name: "flip",
-                    options: {
-                      fallbackPlacements: ["top-start", "bottom-end"],
-                    },
-                  },
-                ]}
-                calendarClassName="custom-datepicker"
-                customInput={
-                  <button
-                    type="button"
-                    className="date-btn-av"
-                    aria-label="Selecionar data inicial"
-                  >
-                    <span
-                      className="material-symbols-rounded date-icon-av"
-                      style={{ color: "#fff" }}
-                    >
-                      calendar_month
-                    </span>
-                    <span className="date-text-av">
-                      {startDate.toLocaleDateString("pt-BR")}
-                    </span>
-                  </button>
-                }
-              />
-            </div>
-          </div>
-          <div className="date-group-av">
-            <span className="date-label-av">Data final</span>
-            <div className="date-field-av">
-              <DatePicker
-                selected={endDate}
-                onChange={(date) => setEndDate(date)}
-                locale="pt-BR"
-                dateFormat="dd/MM/yyyy"
-                showYearDropdown
-                scrollableYearDropdown
-                yearDropdownItemNumber={15}
-                popperPlacement="bottom-start"
-                popperModifiers={[
-                  { name: "offset", options: { offset: [0, 8] } },
-                  {
-                    name: "preventOverflow",
-                    options: { rootBoundary: "viewport", padding: 8 },
-                  },
-                  {
-                    name: "flip",
-                    options: {
-                      fallbackPlacements: ["top-start", "bottom-end"],
-                    },
-                  },
-                ]}
-                calendarClassName="custom-datepicker"
-                customInput={
-                  <button
-                    type="button"
-                    className="date-btn-av"
-                    aria-label="Selecionar data final"
-                  >
-                    <span
-                      className="material-symbols-rounded date-icon-av"
-                      style={{ color: "#fff" }}
-                    >
-                      calendar_month
-                    </span>
-                    <span className="date-text-av">
-                      {endDate.toLocaleDateString("pt-BR")}
-                    </span>
-                  </button>
-                }
-              />
-            </div>
-          </div>
+        
+        <div className="text-sm text-gray-600 ml-9 mb-3">
+          {personName}
         </div>
 
-        <div className="section-title-av">Dados Básicos</div>
+        {/* Data Final */}
+        <div className="mb-4">
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Data Final</label>
+          <div className="custom-datepicker flex items-center gap-2 cursor-pointer" onClick={() => setShowCalendar(!showCalendar)} style={{width: '146px'}}>
+            <span className="material-symbols-rounded text-xl">event</span>
+            <span>{dataFinal.toLocaleDateString("pt-BR")}</span>
+          </div>
+          
+          {showCalendar && (
+            <div className="mt-2 absolute z-10">
+              <Calendar
+                selectedDate={dataFinal}
+                onDateSelect={(date) => {
+                  setDataFinal(date);
+                  setShowCalendar(false);
+                }}
+                className="w-full max-w-sm"
+              />
+            </div>
+          )}
+        </div>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="idade">
-              Idade
-            </label>
-            <input
-              className="input-av"
-              type="number"
+        <div className="space-y-6">
+          {/* Dados Básicos */}
+          <h2 className="text-lg font-semibold mb-2">Dados Básicos</h2>
+          
+          <InputRow>
+            <InputField 
               id="idade"
-              inputMode="numeric"
-              min="1"
-              max="120"
-              value={dadosBasicos.idade}
-              onChange={(e) =>
-                handleDadosBasicosChange("idade", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="peso">
-              Peso (kg)
-            </label>
-            <input
-              className="input-av"
+              label="Idade"
               type="number"
+              value={dadosBasicos.idade}
+              onChange={(e) => handleDadosBasicosChange("idade", e.target.value)}
+            />
+            <InputField 
               id="peso"
-              inputMode="decimal"
-              step="0.1"
-              min="1"
-              max="300"
+              label="Peso (kg)"
+              type="number"
               value={dadosBasicos.peso}
               onChange={(e) => handleDadosBasicosChange("peso", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="section-title-av">Medidas</div>
+          {/* Medidas */}
+          <h2 className="text-lg font-semibold mb-2">Medidas</h2>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-direito">
-              Braço <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          {/* Medidas Bilaterais */}
+          <InputRow>
+            <InputField 
               id="braco-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Braço (direito)"
+              type="number"
               value={medidas.bracoDireito}
-              onChange={(e) =>
-                handleMedidaChange("bracoDireito", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("bracoDireito", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-esquerdo">
-              Braço <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="braco-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Braço (esquerdo)"
+              type="number"
               value={medidas.bracoEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("bracoEsquerdo", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("bracoEsquerdo", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-forca-direito">
-              Braço <span className="paren">(força)</span>{" "}
-              <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          <InputRow>
+            <InputField 
               id="braco-forca-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label={
+                <>
+                  Braço <span className="text-parentheses">(força)</span> <span className="text-parentheses">(direito)</span>
+                </>
+              }
+              type="number"
               value={medidas.bracoForcaDireito}
-              onChange={(e) =>
-                handleMedidaChange("bracoForcaDireito", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("bracoForcaDireito", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-forca-esquerdo">
-              Braço <span className="paren">(força)</span>{" "}
-              <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="braco-forca-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label={
+                <>
+                  Braço <span className="text-parentheses">(força)</span> <span className="text-parentheses">(esquerdo)</span>
+                </>
+              }
+              type="number"
               value={medidas.bracoForcaEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("bracoForcaEsquerdo", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("bracoForcaEsquerdo", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="antebraco-direito">
-              Antebraço <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          <InputRow>
+            <InputField 
               id="antebraco-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Antebraço (direito)"
+              type="number"
               value={medidas.antebracoDireito}
-              onChange={(e) =>
-                handleMedidaChange("antebracoDireito", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("antebracoDireito", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="antebraco-esquerdo">
-              Antebraço <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="antebraco-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Antebraço (esquerdo)"
+              type="number"
               value={medidas.antebracoEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("antebracoEsquerdo", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("antebracoEsquerdo", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        {/* Unilateral fields moved to the end: tórax, cintura, quadril */}
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-proximal-direita">
-              Coxa <span className="paren">(proximal) (direita)</span>
-            </label>
-            <input
-              className="input-av"
+          <InputRow>
+            <InputField 
+              id="coxa-direita"
+              label="Coxa (direita)"
               type="number"
-              id="coxa-proximal-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
               value={medidas.coxaProximalDireita}
-              onChange={(e) =>
-                handleMedidaChange("coxaProximalDireita", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("coxaProximalDireita", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-proximal-esquerda">
-              Coxa <span className="paren">(proximal) (esquerda)</span>
-            </label>
-            <input
-              className="input-av"
+            <InputField 
+              id="coxa-esquerda"
+              label="Coxa (esquerda)"
               type="number"
-              id="coxa-proximal-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
               value={medidas.coxaProximalEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("coxaProximalEsquerda", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("coxaProximalEsquerda", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-distal-direita">
-              Coxa <span className="paren">(distal) (direita)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          <InputRow>
+            <InputField 
               id="coxa-distal-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Coxa (distal) (direita)"
+              type="number"
               value={medidas.coxaDistalDireita}
-              onChange={(e) =>
-                handleMedidaChange("coxaDistalDireita", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("coxaDistalDireita", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-distal-esquerda">
-              Coxa <span className="paren">(distal) (esquerda)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="coxa-distal-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Coxa (distal) (esquerda)"
+              type="number"
               value={medidas.coxaDistalEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("coxaDistalEsquerda", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("coxaDistalEsquerda", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="panturrilha-direita">
-              Panturrilha <span className="paren">(direita)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          <InputRow>
+            <InputField 
               id="panturrilha-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Panturrilha (direita)"
+              type="number"
               value={medidas.panturrilhaDireita}
-              onChange={(e) =>
-                handleMedidaChange("panturrilhaDireita", e.target.value)
-              }
+              onChange={(e) => handleMedidaChange("panturrilhaDireita", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="panturrilha-esquerda">
-              Panturrilha <span className="paren">(esquerda)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="panturrilha-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.panturrilhaEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("panturrilhaEsquerda", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        {/* Unilateral fields */}
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="torax">
-              Tórax
-            </label>
-            <input
-              className="input-av"
+              label="Panturrilha (esquerda)"
               type="number"
+              value={medidas.panturrilhaEsquerda}
+              onChange={(e) => handleMedidaChange("panturrilhaEsquerda", e.target.value)}
+            />
+          </InputRow>
+
+          {/* Medidas Unilaterais */}
+          <InputRow>
+            <InputField 
               id="torax"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Tórax"
+              type="number"
               value={medidas.torax}
               onChange={(e) => handleMedidaChange("torax", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="busto">
-              Busto
-            </label>
-            <input
-              className="input-av"
+            <InputField 
+              id="abdomen"
+              label="Abdômen"
               type="number"
-              id="busto"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.busto}
-              onChange={(e) => handleMedidaChange("busto", e.target.value)}
+              value={medidas.abdomen}
+              onChange={(e) => handleMedidaChange("abdomen", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="cintura">
-              Cintura
-            </label>
-            <input
-              className="input-av"
-              type="number"
+          <InputRow>
+            <InputField 
               id="cintura"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Cintura"
+              type="number"
               value={medidas.cintura}
               onChange={(e) => handleMedidaChange("cintura", e.target.value)}
             />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="quadril">
-              Quadril
-            </label>
-            <input
-              className="input-av"
-              type="number"
+            <InputField 
               id="quadril"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+              label="Quadril"
+              type="number"
               value={medidas.quadril}
               onChange={(e) => handleMedidaChange("quadril", e.target.value)}
             />
-          </div>
-        </div>
+          </InputRow>
 
-        <button
-          className="primary-btn-av"
-          type="button"
-          onClick={handleAtualizar}
-        >
-          Atualizar
-        </button>
+          <button
+            className="bg-medfit-blue rounded-lg h-12 px-4 text-white font-semibold font-poppins text-sm border-none w-full mt-3 cursor-pointer"
+            type="button"
+            onClick={handleAtualizar}
+          >
+            Atualizar
+          </button>
+        </div>
       </div>
       <BottomNav />
     </div>

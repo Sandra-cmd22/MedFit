@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import "./Historico.css";
 import BottomNav from "../components/BottomNav.jsx";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../../firebase.config.js";
@@ -15,488 +14,276 @@ const Historico = () => {
   const [loading, setLoading] = useState(false);
   const userName = location?.state?.userName || "Cliente";
 
-  console.log(userName);
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
       try {
-        // --- 1. Buscar dados do cliente ---
-        // Cria uma query para buscar o cliente pelo nome na coleção 'clientes'
+        // Buscar dados do cliente
         const clientesRef = collection(db, "clientes");
         const qCliente = query(clientesRef, where("nome", "==", userName));
         const clienteSnapshot = await getDocs(qCliente);
 
         if (!clienteSnapshot.empty) {
           const clienteDoc = clienteSnapshot.docs[0];
-          setClienteData(clienteDoc.data());
+          const clienteData = { id: clienteDoc.id, ...clienteDoc.data() };
+          setClienteData(clienteData);
         }
 
-        // --- 2. Buscar avaliações do cliente ---
-        // Cria uma query para buscar avaliações do cliente pelo nome na coleção 'avaliacoes'
-        // Ordena por 'evaluationDate' em ordem decrescente (mais recente primeiro)
+        // Buscar avaliações do cliente
         const avaliacoesRef = collection(db, "avaliacoes");
         const qAvaliacoes = query(
           avaliacoesRef,
           where("clienteNome", "==", userName),
-          orderBy("evaluationDate", "desc") // Firebase permite ordenar diretamente na query
+          orderBy("dataAvaliacao", "desc")
         );
         const avaliacoesSnapshot = await getDocs(qAvaliacoes);
 
-        const avaliacoesCliente = avaliacoesSnapshot.docs.map((doc) => ({
-          id: doc.id, // É útil manter o ID do documento
+        const avaliacoesData = avaliacoesSnapshot.docs.map((doc) => ({
+          id: doc.id,
           ...doc.data(),
         }));
 
-        setAvaliacoes(avaliacoesCliente);
+        setAvaliacoes(avaliacoesData);
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("Erro ao buscar dados:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [userName]); // Dependência ajustada para 'userName'
+  }, [userName]);
 
-  // Restante do código (formatDate, calcularDiferencas, renderizarValorComComparacao, shareToWhatsApp)
-  // ... (Essas funções não precisam de alteração, pois trabalham com os dados já obtidos)
   const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    // Firestore pode retornar timestamps, converta para Date
-    if (dateString.toDate) {
-      return dateString.toDate().toLocaleDateString("pt-BR");
+    if (!dateString) return "Data não disponível";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("pt-BR");
+    } catch (error) {
+      return "Data inválida";
     }
-    return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
-  const calcularDiferencas = (avaliacaoAtual, avaliacaoAnterior) => {
-    if (!avaliacaoAtual || !avaliacaoAnterior) return {};
+  const formatarNomeMedida = (key) => {
+    const nomes = {
+      bracoDireito: "Braço Direito",
+      bracoEsquerdo: "Braço Esquerdo", 
+      bracoForcaDireito: "Braço (força) Direito",
+      bracoForcaEsquerdo: "Braço (força) Esquerdo",
+      antebracoDireito: "Antebraço Direito",
+      antebracoEsquerdo: "Antebraço Esquerdo",
+      torax: "Tórax",
+      abdomen: "Abdômen",
+      cintura: "Cintura",
+      quadril: "Quadril",
+      coxaProximalDireita: "Coxa Proximal Direita",
+      coxaProximalEsquerda: "Coxa Proximal Esquerda",
+      coxaDistalDireita: "Coxa Distal Direita",
+      coxaDistalEsquerda: "Coxa Distal Esquerda",
+      panturrilhaDireita: "Panturrilha Direita",
+      panturrilhaEsquerda: "Panturrilha Esquerda"
+    };
+    return nomes[key] || key;
+  };
 
-    const diferencas = {};
-    const medidasAtuais = avaliacaoAtual.medidas || {};
-    const medidasAnteriores = avaliacaoAnterior.medidas || {};
-
-    const medidasParaComparar = [
-      "bracoDireito",
-      "bracoEsquerdo",
-      "bracoForcaDireito",
-      "bracoForcaEsquerdo",
-      "antebracoDireito",
-      "antebracoEsquerdo",
-      "torax",
-      "cintura",
-      "quadril",
-      "coxaProximalDireita",
-      "coxaProximalEsquerda",
-      "coxaDistalDireita",
-      "coxaDistalEsquerda",
-      "panturrilhaDireita",
-      "panturrilhaEsquerda",
-    ];
-
-    medidasParaComparar.forEach((medida) => {
-      const valorAtual = parseFloat(medidasAtuais[medida]);
-      const valorAnterior = parseFloat(medidasAnteriores[medida]);
-
-      if (!isNaN(valorAtual) && !isNaN(valorAnterior)) {
-        const isMelhoria =
-          medida === "cintura"
-            ? valorAtual < valorAnterior
-            : valorAtual > valorAnterior;
-
-        diferencas[medida] = {
-          atual: valorAtual,
-          anterior: valorAnterior,
-          diferenca: valorAtual - valorAnterior,
-          melhoria: isMelhoria,
-        };
+  const compartilharWhatsApp = () => {
+    if (!clienteData?.medidas) return;
+    
+    let mensagem = `📊 *Histórico de Avaliação - ${userName}*\n\n`;
+    mensagem += `📅 Data: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+    mensagem += `📏 *Medidas Corporais:*\n`;
+    
+    Object.entries(clienteData.medidas).forEach(([key, value]) => {
+      if (value && value !== "0" && value !== "") {
+        mensagem += `• ${formatarNomeMedida(key)}: ${value}cm\n`;
       }
     });
-    return diferencas;
-  };
-
-  const renderizarValorComComparacao = (medida, valor) => {
-    if (!avaliacoes || avaliacoes.length < 2) {
-      return <span className="value">{valor || "-"} cm</span>;
-    }
-
-    const diferencas = calcularDiferencas(avaliacoes[0], avaliacoes[1]);
-    const diferenca = diferencas[medida];
-
-    if (!diferenca) {
-      return <span className="value">{valor || "-"} cm</span>;
-    }
-
-    const valorAtual = diferenca.atual;
-    const valorAnterior = diferenca.anterior;
-    const isMelhoria = diferenca.melhoria;
-
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "14px",
-        }}
-      >
-        <span
-          style={{
-            color: isMelhoria ? "#4CAF50" : "#F44336",
-            fontWeight: "bold",
-          }}
-        >
-          {valorAtual}cm
-        </span>
-        <span style={{ color: "#666" }}>/</span>
-        <span
-          style={{
-            color: isMelhoria ? "#F44336" : "#4CAF50",
-            fontWeight: "bold",
-          }}
-        >
-          {valorAnterior}cm
-        </span>
-      </div>
-    );
-  };
-
-  const shareToWhatsApp = () => {
-    if (!clienteData) return;
-
-    const medidas = clienteData.medidas || {};
-    const imc =
-      clienteData.peso && clienteData.altura
-        ? (clienteData.peso / Math.pow(clienteData.altura / 100, 2)).toFixed(1)
-        : "-";
-    const rcq =
-      medidas.cintura && medidas.quadril
-        ? (medidas.cintura / medidas.quadril).toFixed(2)
-        : "-";
-
-    const message = `📊 *RELATÓRIO DE AVALIAÇÃO FÍSICA*
-  
-👤 *Cliente:* ${clienteData.nome}
-📅 *Data:* ${formatDate(clienteData.dataCadastro)}
-
-📏 *DADOS BÁSICOS:*
-• Idade: ${clienteData.idade || "-"} anos
-• Altura: ${clienteData.altura || "-"} cm
-• Peso: ${clienteData.peso || "-"} kg
-• Sexo: ${clienteData.sexo || "-"}
-
-📊 *ÍNDICES CORPORAIS:*
-• IMC: ${imc}
-• RCQ: ${rcq}
-
-📐 *MEDIDAS CORPORAIS:*
-• Braço Direito: ${medidas.bracoDireito || "-"} cm
-• Braço Esquerdo: ${medidas.bracoEsquerdo || "-"} cm
-• Braço Força Direito: ${medidas.bracoForcaDireito || "-"} cm
-• Braço Força Esquerdo: ${medidas.bracoForcaEsquerdo || "-"} cm
-• Antebraço Direito: ${medidas.antebracoDireito || "-"} cm
-• Antebraço Esquerdo: ${medidas.antebracoEsquerdo || "-"} cm
-• Tórax: ${medidas.torax || "-"} cm
-• Cintura: ${medidas.cintura || "-"} cm
-• Quadril: ${medidas.quadril || "-"} cm
-• Coxa Proximal Direita: ${medidas.coxaProximalDireita || "-"} cm
-• Coxa Proximal Esquerda: ${medidas.coxaProximalEsquerda || "-"} cm
-• Coxa Distal Direita: ${medidas.coxaDistalDireita || "-"} cm
-• Coxa Distal Esquerda: ${medidas.coxaDistalEsquerda || "-"} cm
-• Panturrilha Direita: ${medidas.panturrilhaDireita || "-"} cm
-• Panturrilha Esquerda: ${medidas.panturrilhaEsquerda || "-"} cm
-
-📱 *Gerado pelo MedFit App*`;
-
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-
-    window.open(whatsappUrl, "_blank");
+    
+    if (clienteData.idade) mensagem += `\n👤 Idade: ${clienteData.idade} anos`;
+    if (clienteData.peso) mensagem += `\n⚖️ Peso: ${clienteData.peso} kg`;
+    if (clienteData.altura) mensagem += `\n📏 Altura: ${clienteData.altura} cm`;
+    
+    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
   };
 
   if (loading) {
     return (
-      <div className="historico-container">
-        <div className="historico-header">
-          <button className="icon-btn" onClick={() => navigate(-1)}>
-            <span className="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 className="historico-title">Carregando...</h1>
+      <div className="min-h-screen bg-white font-poppins p-4 pb-20">
+        <div className="flex items-center justify-center h-64">
+          <span className="material-symbols-rounded text-4xl text-blue-700 animate-spin">
+            refresh
+          </span>
         </div>
         <BottomNav />
       </div>
     );
   }
-
-  if (!clienteData) {
-    return (
-      <div className="historico-container">
-        <div className="historico-header">
-          <button className="icon-btn" onClick={() => navigate(-1)}>
-            <span className="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 className="historico-title">Histórico</h1>
-        </div>
-        <div className="no-data">
-          <p>Nenhum dado encontrado para este cliente.</p>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  const medidas = clienteData.medidas || {};
-  const imc =
-    clienteData.peso && clienteData.altura
-      ? (clienteData.peso / Math.pow(clienteData.altura / 100, 2)).toFixed(1)
-      : null;
-  const rcq =
-    medidas.cintura && medidas.quadril
-      ? (medidas.cintura / medidas.quadril).toFixed(2)
-      : null;
 
   return (
-    <div className="historico-container">
-      <div className="historico-header">
-        <button className="icon-btn" onClick={() => navigate(-1)}>
+    <div className="min-h-screen bg-white font-poppins p-4 pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-6">
+        <button 
+          className="text-2xl text-gray-700" 
+          onClick={() => navigate(-1)}
+        >
           <span className="material-symbols-rounded">arrow_back</span>
         </button>
-        <h1 className="historico-title">Histórico Completo</h1>
-        <button
-          className="icon-btn"
-          onClick={shareToWhatsApp}
-          title="Compartilhar no WhatsApp"
-        >
-          <span className="material-symbols-rounded">share</span>
-        </button>
+        <h1 className="text-2xl font-semibold text-gray-900">Histórico Completo</h1>
       </div>
 
-      <div className="historico-content">
-        <div className="client-info">
-          <h2>{clienteData.nome}</h2>
-          <p>Cadastrado em: {formatDate(clienteData.dataCadastro)}</p>
-        </div>
-
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">person</span> Dados
-            Básicos
-          </h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Idade:</span>
-              <span className="value">{clienteData.idade || "-"} anos</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Altura:</span>
-              <span className="value">{clienteData.altura || "-"} cm</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Peso:</span>
-              <span className="value">{clienteData.peso || "-"} kg</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Sexo:</span>
-              <span className="value">{clienteData.sexo || "-"}</span>
-            </div>
+      {/* Informações do Cliente */}
+      {clienteData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h2 className="text-lg font-semibold text-blue-700 mb-2">{userName}</h2>
+          <div className="grid grid-cols-2 gap-2 text-sm text-blue-700">
+            {clienteData.idade && <div>Idade: {clienteData.idade} anos</div>}
+            {clienteData.altura && <div>Altura: {clienteData.altura} cm</div>}
+            {clienteData.peso && <div>Peso: {clienteData.peso} kg</div>}
+            {clienteData.sexo && <div>Sexo: {clienteData.sexo}</div>}
           </div>
         </div>
+      )}
 
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">analytics</span> Índices
-            Corporais
-          </h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">IMC:</span>
-              <span className="value">{imc || "-"}</span>
+      {/* Comparação de Medidas */}
+      {clienteData?.medidas && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Comparação de Medidas</h3>
+          
+          {avaliacoes.length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(clienteData.medidas).map(([key, value]) => {
+                if (!value || value === "0" || value === "") return null;
+                
+                const medidaAnterior = avaliacoes[0]?.medidas?.[key];
+                
+                return (
+                  <div key={key} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-gray-700 font-medium text-sm">
+                      {formatarNomeMedida(key)}
+                    </span>
+                    <div className="flex items-center gap-2 text-sm">
+                      {medidaAnterior && medidaAnterior !== "0" && medidaAnterior !== "" && (
+                        <>
+                          <span className="text-red-600 font-medium">
+                            {medidaAnterior}cm
+                          </span>
+                          <span className="text-gray-400">→</span>
+                        </>
+                      )}
+                      <span className="text-green-600 font-semibold">
+                        {value}cm
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="info-item">
-              <span className="label">RCQ:</span>
-              <span className="value">{rcq || "-"}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">straighten</span> Medidas
-            Corporais
-          </h3>
-          {avaliacoes.length >= 2 && (
-            <div
-              style={{
-                marginBottom: "16px",
-                padding: "8px 12px",
-                backgroundColor: "#f8f9fa",
-                borderRadius: "8px",
-                fontSize: "12px",
-                color: "#666",
-              }}
-            >
-              <span
-                className="material-symbols-rounded"
-                style={{ fontSize: "16px", marginRight: "4px" }}
-              >
-                trending_up
-              </span>
-              Formato:{" "}
-              <span style={{ color: "#4CAF50", fontWeight: "bold" }}>
-                atual
-              </span>{" "}
-              /{" "}
-              <span style={{ color: "#F44336", fontWeight: "bold" }}>
-                anterior
-              </span>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(clienteData.medidas).map(([key, value]) => {
+                if (!value || value === "0" || value === "") return null;
+                
+                return (
+                  <div key={key} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-gray-700 font-medium text-sm">
+                      {formatarNomeMedida(key)}
+                    </span>
+                    <span className="text-green-600 font-semibold text-sm">
+                      {value}cm
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
-          <div className="medidas-grid">
-            <div className="medida-item">
-              <span className="label">Braço Direito:</span>
-              {renderizarValorComComparacao(
-                "bracoDireito",
-                medidas.bracoDireito
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "bracoEsquerdo",
-                medidas.bracoEsquerdo
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Força Direito:</span>
-              {renderizarValorComComparacao(
-                "bracoForcaDireito",
-                medidas.bracoForcaDireito
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Força Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "bracoForcaEsquerdo",
-                medidas.bracoForcaEsquerdo
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Antebraço Direito:</span>
-              {renderizarValorComComparacao(
-                "antebracoDireito",
-                medidas.antebracoDireito
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Antebraço Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "antebracoEsquerdo",
-                medidas.antebracoEsquerdo
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Tórax:</span>
-              {renderizarValorComComparacao("torax", medidas.torax)}
-            </div>
-            <div className="medida-item">
-              <span className="label">Cintura:</span>
-              {renderizarValorComComparacao("cintura", medidas.cintura)}
-            </div>
-            <div className="medida-item">
-              <span className="label">Quadril:</span>
-              {renderizarValorComComparacao("quadril", medidas.quadril)}
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Proximal Direita:</span>
-              {renderizarValorComComparacao(
-                "coxaProximalDireita",
-                medidas.coxaProximalDireita
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Proximal Esquerda:</span>
-              {renderizarValorComComparacao(
-                "coxaProximalEsquerda",
-                medidas.coxaProximalEsquerda
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Distal Direita:</span>
-              {renderizarValorComComparacao(
-                "coxaDistalDireita",
-                medidas.coxaDistalDireita
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Distal Esquerda:</span>
-              {renderizarValorComComparacao(
-                "coxaDistalEsquerda",
-                medidas.coxaDistalEsquerda
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Panturrilha Direita:</span>
-              {renderizarValorComComparacao(
-                "panturrilhaDireita",
-                medidas.panturrilhaDireita
-              )}
-            </div>
-            <div className="medida-item">
-              <span className="label">Panturrilha Esquerda:</span>
-              {renderizarValorComComparacao(
-                "panturrilhaEsquerda",
-                medidas.panturrilhaEsquerda
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                <span>Medida Atual</span>
+              </div>
+              {avaliacoes.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                  <span>Medida Anterior</span>
+                </div>
               )}
             </div>
           </div>
         </div>
+      )}
 
-        {avaliacoes.length > 0 && (
-          <div className="section">
-            <h3>
-              <span className="material-symbols-rounded">history</span>{" "}
-              Histórico de Avaliações
-            </h3>
-            <div className="avaliacoes-list">
-              {avaliacoes.map((avaliacao, index) => (
-                <div key={avaliacao.id} className="avaliacao-item">
-                  <div className="avaliacao-header">
-                    <span className="avaliacao-date">
-                      {formatDate(
-                        avaliacao.dataAvaliacao || avaliacao.evaluationDate
-                      )}
-                    </span>
-                    {index === 0 && <span className="badge-atual">Atual</span>}
-                  </div>
-                  <div className="avaliacao-medidas">
-                    {Object.entries(avaliacao.medidas || {})
-                      .slice(0, 4)
-                      .map(([medida, valor]) => (
-                        <div key={medida} className="medida-compact">
-                          <span className="label-compact">
-                            {medida
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                            :
-                          </span>
-                          <span className="value-compact">{valor} cm</span>
-                        </div>
-                      ))}
+      {/* Histórico de Avaliações */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Histórico de Avaliações</h3>
+        
+        {avaliacoes.length === 0 ? (
+          <div className="text-center py-8">
+            <span className="material-symbols-rounded text-4xl text-gray-300 mb-2 block">
+              assignment
+            </span>
+            <p className="text-gray-500">Nenhuma avaliação encontrada</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {avaliacoes.map((avaliacao, index) => (
+              <div key={avaliacao.id} className="border-l-4 border-blue-500 pl-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-gray-900">
+                    Avaliação {index + 1}
+                  </h4>
+                  <span className="text-sm text-gray-500">
+                    {formatDate(avaliacao.dataAvaliacao)}
+                  </span>
+                </div>
+                
+                <div className="text-sm text-gray-600">
+                  <div className="grid grid-cols-2 gap-2">
+                    {avaliacao.dadosBasicos?.idade && (
+                      <div>Idade: {avaliacao.dadosBasicos.idade} anos</div>
+                    )}
+                    {avaliacao.dadosBasicos?.peso && (
+                      <div>Peso: {avaliacao.dadosBasicos.peso} kg</div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
+      </div>
 
-        <div className="share-section">
-          <button className="whatsapp-btn" onClick={shareToWhatsApp}>
-            <span className="material-symbols-rounded">share</span>
-            Compartilhar no WhatsApp
-          </button>
-        </div>
+      {/* Botão Compartilhar WhatsApp */}
+      <div style={{ marginTop: '24px', marginBottom: '80px' }}>
+        <button
+          onClick={compartilharWhatsApp}
+          style={{
+            width: '100%',
+            backgroundColor: 'white',
+            border: '2px solid #16a34a',
+            color: '#16a34a',
+            borderRadius: '8px',
+            height: '48px',
+            padding: '0 16px',
+            fontWeight: '600',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            fontFamily: 'Poppins, sans-serif'
+          }}
+        >
+          <svg width="20" height="20" fill="#16a34a" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+          </svg>
+          Compartilhar por WhatsApp
+        </button>
       </div>
 
       <BottomNav />

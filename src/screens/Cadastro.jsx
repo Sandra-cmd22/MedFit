@@ -1,32 +1,98 @@
-import { ptBR } from "date-fns/locale";
 import { addDoc, collection, getDocs } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase.config.js";
 import BottomNav from "../components/BottomNav.jsx";
-import "./Cadastro.css";
-registerLocale("pt-BR", ptBR);
+
+// Função para renderizar label com texto entre parênteses menor
+const renderLabel = (label) => {
+  // Se o label já é um JSX element, retorna como está
+  if (typeof label !== 'string') {
+    return label;
+  }
+  
+  const parts = label.split(/(\([^)]+\))/);
+  return parts.map((part, index) => {
+    if (part.startsWith('(') && part.endsWith(')')) {
+      return <span key={index} className="text-parentheses">{part}</span>;
+    }
+    return part;
+  });
+};
+
+// Componente de input reutilizável
+const InputField = ({ id, label, type = "text", children, value, onChange, ...props }) => (
+  <div className="flex-1">
+    <label className="text-sm font-medium text-gray-700 block" htmlFor={id}>
+      {renderLabel(label)}
+    </label>
+    {children || (
+      <input 
+        className="h-10 font-poppins text-sm border border-gray-300 bg-white px-3 w-full box-border text-gray-700 mb-3-custom" 
+        style={{ borderRadius: '8px' }}
+        type={type}
+        id={id}
+        value={value || ""}
+        onChange={onChange}
+        autoComplete="off"
+        {...props}
+      />
+    )}
+  </div>
+);
+
+// Componente de linha com dois inputs
+const InputRow = ({ children }) => (
+  <div className="flex justify-between gap-3 mb-3-custom">
+    {children}
+  </div>
+);
 
 const Cadastro = () => {
   const navigate = useNavigate();
-  const [sexo, setSexo] = useState("");
   const [, setClientes] = useState([]);
+  
+  // Estado para controlar os valores dos campos
+  const [formData, setFormData] = useState({
+    nome: "",
+    idade: "",
+    altura: "",
+    peso: "",
+    sexo: "",
+    medidas: {}
+  });
+
+  // Função para atualizar dados do formulário
+  const updateFormData = useCallback((field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  // Função para atualizar medidas
+  const updateMedidas = useCallback((field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      medidas: {
+        ...prev.medidas,
+        [field]: value
+      }
+    }));
+  }, []);
 
   useEffect(() => {
     const fetchClientes = async () => {
       try {
         const clientesRef = collection(db, "clientes");
-        const snapshot = await getDocs(clientesRef);
-        const data = snapshot.docs.map((doc) => ({
+        const clientesSnapshot = await getDocs(clientesRef);
+        const clientesList = clientesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setClientes(data);
+        setClientes(clientesList);
       } catch (error) {
-        console.error("Erro ao carregar clientes do Firestore:", error);
-        setClientes([]);
+        console.error("Erro ao buscar clientes:", error);
       }
     };
 
@@ -35,73 +101,107 @@ const Cadastro = () => {
 
   const handleCadastrar = async () => {
     try {
-      const getEl = (id) => document.getElementById(id);
-      const getNumber = (id) => {
-        const el = getEl(id);
-        if (!el) return NaN;
-        const v = parseFloat((el.value || "").toString().replace(",", "."));
-        return Number.isNaN(v) ? NaN : v;
-      };
-
-      const nome = (getEl("nome")?.value || "").toString().trim();
-      const idade = (getEl("idade")?.value || "").toString().trim();
-      const altura = getNumber("altura");
-      const peso = getNumber("peso");
-
-      if (!nome) {
+      // Validar campos obrigatórios
+      if (!formData.nome.trim()) {
         alert("Nome é obrigatório");
         return;
       }
 
-      // Coletar todas as medidas
+      if (!formData.altura || formData.altura <= 0) {
+        alert("Altura é obrigatória e deve ser maior que zero");
+        return;
+      }
+
+      if (!formData.peso || formData.peso <= 0) {
+        alert("Peso é obrigatório e deve ser maior que zero");
+        return;
+      }
+
+      if (!formData.sexo) {
+        alert("Sexo é obrigatório");
+        return;
+      }
+
+      // Converter strings para números
+      const getNumber = (value) => {
+        if (!value) return NaN;
+        // Garantir que o valor seja uma string antes de processar
+        const stringValue = String(value).replace(",", ".");
+        const v = parseFloat(stringValue);
+        return Number.isNaN(v) ? NaN : v;
+      };
+
+      const altura = getNumber(formData.altura);
+      const peso = getNumber(formData.peso);
+
+      // Coletar todas as medidas convertendo para números
       const medidas = {
-        bracoDireito: getNumber("braco-direito"),
-        bracoEsquerdo: getNumber("braco-esquerdo"),
-        bracoForcaDireito: getNumber("braco-forca-direito"),
-        bracoForcaEsquerdo: getNumber("braco-forca-esquerdo"),
-        antebracoDireito: getNumber("antebraco-direito"),
-        antebracoEsquerdo: getNumber("antebraco-esquerdo"),
-        torax: getNumber("torax"),
-        busto: getNumber("busto"),
-        cintura: getNumber("cintura"),
-        quadril: getNumber("quadril"),
-        coxaProximalDireita: getNumber("coxa-proximal-direita"),
-        coxaProximalEsquerda: getNumber("coxa-proximal-esquerda"),
-        coxaDistalDireita: getNumber("coxa-distal-direita"),
-        coxaDistalEsquerda: getNumber("coxa-distal-esquerda"),
-        panturrilhaDireita: getNumber("panturrilha-direita"),
-        panturrilhaEsquerda: getNumber("panturrilha-esquerda"),
+        bracoDireito: getNumber(formData.medidas.bracoDireito),
+        bracoEsquerdo: getNumber(formData.medidas.bracoEsquerdo),
+        bracoForcaDireito: getNumber(formData.medidas.bracoForcaDireito),
+        bracoForcaEsquerdo: getNumber(formData.medidas.bracoForcaEsquerdo),
+        antebracoDireito: getNumber(formData.medidas.antebracoDireito),
+        antebracoEsquerdo: getNumber(formData.medidas.antebracoEsquerdo),
+        torax: getNumber(formData.medidas.torax),
+        abdomen: getNumber(formData.medidas.abdomen),
+        cintura: getNumber(formData.medidas.cintura),
+        quadril: getNumber(formData.medidas.quadril),
+        coxaProximalDireita: getNumber(formData.medidas.coxaProximalDireita),
+        coxaProximalEsquerda: getNumber(formData.medidas.coxaProximalEsquerda),
+        coxaDistalDireita: getNumber(formData.medidas.coxaDistalDireita),
+        coxaDistalEsquerda: getNumber(formData.medidas.coxaDistalEsquerda),
+        panturrilhaDireita: getNumber(formData.medidas.panturrilhaDireita),
+        panturrilhaEsquerda: getNumber(formData.medidas.panturrilhaEsquerda),
       };
 
       const cliente = {
-        nome,
-        idade,
-        altura,
-        peso,
-        sexo, // certifique-se que `sexo` está definido no escopo
-        medidas,
+        nome: String(formData.nome || "").trim(),
+        idade: String(formData.idade || "").trim(),
+        altura: Number(altura) || 0,
+        peso: Number(peso) || 0,
+        sexo: String(formData.sexo || ""),
+        medidas: {
+          bracoDireito: Number(medidas.bracoDireito) || 0,
+          bracoEsquerdo: Number(medidas.bracoEsquerdo) || 0,
+          bracoForcaDireito: Number(medidas.bracoForcaDireito) || 0,
+          bracoForcaEsquerdo: Number(medidas.bracoForcaEsquerdo) || 0,
+          antebracoDireito: Number(medidas.antebracoDireito) || 0,
+          antebracoEsquerdo: Number(medidas.antebracoEsquerdo) || 0,
+          torax: Number(medidas.torax) || 0,
+          abdomen: Number(medidas.abdomen) || 0,
+          cintura: Number(medidas.cintura) || 0,
+          quadril: Number(medidas.quadril) || 0,
+          coxaProximalDireita: Number(medidas.coxaProximalDireita) || 0,
+          coxaProximalEsquerda: Number(medidas.coxaProximalEsquerda) || 0,
+          coxaDistalDireita: Number(medidas.coxaDistalDireita) || 0,
+          coxaDistalEsquerda: Number(medidas.coxaDistalEsquerda) || 0,
+          panturrilhaDireita: Number(medidas.panturrilhaDireita) || 0,
+          panturrilhaEsquerda: Number(medidas.panturrilhaEsquerda) || 0,
+        },
         dataCadastro: new Date().toISOString(),
       };
 
       // Salvar no Firestore
-      await addDoc(collection(db, "clientes"), cliente);
+      const docRef = await addDoc(collection(db, "clientes"), cliente);
 
       // Salvar nome no localStorage para uso posterior
       localStorage.setItem("medfit_user_name", nome);
 
-      // Navegar para home
-      navigate("/home", {
+      // Navegar para home - garantir que todos os valores sejam primitivos
+      const navigationState = {
         state: {
           newEntry: {
-            peso,
-            altura,
-            cintura: medidas.cintura,
-            quadril: medidas.quadril,
+            peso: Number(peso) || 0,
+            altura: Number(altura) || 0,
+            cintura: Number(medidas.cintura) || 0,
+            quadril: Number(medidas.quadril) || 0,
+            sexo: String(formData.sexo || ""),
           },
-          name: nome,
+          name: String(nome || ""),
           date: new Date().toISOString(),
         },
-      });
+      };
+      navigate("/home", navigationState);
     } catch (error) {
       console.error("Erro ao cadastrar:", error);
       alert("Erro ao cadastrar cliente. Tente novamente.");
@@ -109,304 +209,239 @@ const Cadastro = () => {
   };
 
   return (
-    <div className="container">
-      <div className="scroll-view">
-        <div className="header">
-          <a href="#" className="back-button" onClick={() => navigate(-1)}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
-            >
+    <div className="flex flex-col font-poppins min-h-screen">
+      <div className="p-3 bg-white flex-1 pb-20">
+        <div className="flex items-center justify-start gap-2 pb-8">
+          <button 
+            className="text-2xl text-gray-700 no-underline" 
+            onClick={() => navigate(-1)}
+          >
+            <span className="material-symbols-rounded" style={{ fontVariationSettings: '"wght" 300' }}>
               arrow_back
             </span>
-          </a>
-          <h1 className="header-text">Cadastro</h1>
-          <div className="placeholder" />
+          </button>
+          <h1 className="text-2xl font-medium m-0 text-black text-center mb-3 flex-1">Cadastro</h1>
+          <div className="w-8" />
         </div>
 
-        <div className="form-content">
-          <div className="col full-width">
-            <label className="label" htmlFor="nome">
-              Nome
-            </label>
-            <input className="input" type="text" id="nome" />
-          </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="idade">
-                Idade
+        <div>
+          <div className="mb-3-custom">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-gray-700 block" htmlFor="nome">
+                Nome
               </label>
-              <input className="input" type="text" id="idade" />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="altura">
-                Altura
-              </label>
-              <input className="input" type="text" id="altura" />
+              <input 
+                className="h-10 font-poppins text-sm border border-gray-300 bg-white px-3 w-full box-border text-gray-700" 
+                style={{ borderRadius: '8px' }}
+                type="text"
+                id="nome"
+                value={formData.nome}
+                onChange={(e) => updateFormData('nome', e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="sexo">
-                Sexo
-              </label>
+          <InputRow>
+            <InputField 
+              id="idade" 
+              label="Idade" 
+              value={formData.idade}
+              onChange={(e) => updateFormData('idade', e.target.value)}
+            />
+            <InputField 
+              id="altura" 
+              label="Altura" 
+              type="number"
+              value={formData.altura}
+              onChange={(e) => updateFormData('altura', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="peso" 
+              label="Peso" 
+              type="number"
+              value={formData.peso}
+              onChange={(e) => updateFormData('peso', e.target.value)}
+            />
+            <InputField 
+              id="sexo" 
+              label="Sexo"
+            >
               <select
+                className="h-10 font-poppins text-sm border border-gray-300 bg-white px-3 w-full box-border text-gray-700 mb-3-custom"
+                style={{ borderRadius: '8px' }}
                 id="sexo"
-                name="sexo"
-                className="input"
-                value={sexo}
-                onChange={(e) => setSexo(e.target.value)}
+                value={formData.sexo}
+                onChange={(e) => updateFormData('sexo', e.target.value)}
               >
                 <option value="">Selecione</option>
-                <option value="Feminino">Feminino</option>
                 <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
               </select>
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="peso">
-                Peso
-              </label>
-              <input className="input" type="text" id="peso" />
-            </div>
-          </div>
+            </InputField>
+          </InputRow>
 
-          <span className="section-title medidas-title">Medidas</span>
 
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="braco-direito">
-                Braço <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="braco-esquerdo">
-                Braço <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="braco-forca-direito">
-                Braço <span className="paren">(força)</span>{" "}
-                <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-forca-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="braco-forca-esquerdo">
-                Braço <span className="paren">(força)</span>{" "}
-                <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-forca-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="antebraco-direito">
-                Antebraço <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="antebraco-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="antebraco-esquerdo">
-                Antebraço <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="antebraco-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="coxa-proximal-direita">
-                Coxa <span className="paren">(proximal) (direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-proximal-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="coxa-proximal-esquerda">
-                Coxa <span className="paren">(proximal) (esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-proximal-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="coxa-distal-direita">
-                Coxa <span className="paren">(distal) (direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-distal-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="coxa-distal-esquerda">
-                Coxa <span className="paren">(distal) (esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-distal-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="panturrilha-direita">
-                Panturrilha <span className="paren">(direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="panturrilha-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="panturrilha-esquerda">
-                Panturrilha <span className="paren">(esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="panturrilha-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="torax">
-                Tórax
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="torax"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="busto">
-                Busto
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="busto"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="cintura">
-                Cintura
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="cintura"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="quadril">
-                Quadril
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="quadril"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
+          {/* Título das Medidas */}
+          <h2 className="text-lg font-bold mt-10 mb-2 text-black">Medidas</h2>
 
-          <button type="button" className="button" onClick={handleCadastrar}>
-            <span className="button-text">Cadastrar</span>
+          {/* Medidas Bilaterais */}
+          <InputRow>
+            <InputField 
+              id="braco-direito" 
+              label="Braço (direito)" 
+              type="number"
+              value={formData.medidas.bracoDireito || ""}
+              onChange={(e) => updateMedidas('bracoDireito', e.target.value)}
+            />
+            <InputField 
+              id="braco-esquerdo" 
+              label="Braço (esquerdo)" 
+              type="number"
+              value={formData.medidas.bracoEsquerdo || ""}
+              onChange={(e) => updateMedidas('bracoEsquerdo', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="braco-forca-direito" 
+              label={
+                <>
+                  Braço <span className="text-parentheses">(força)</span> <span className="text-parentheses">(direito)</span>
+                </>
+              } 
+              type="number"
+              value={formData.medidas.bracoForcaDireito || ""}
+              onChange={(e) => updateMedidas('bracoForcaDireito', e.target.value)}
+            />
+            <InputField 
+              id="braco-forca-esquerdo" 
+              label={
+                <>
+                  Braço <span className="text-parentheses">(força)</span> <span className="text-parentheses">(esquerdo)</span>
+                </>
+              } 
+              type="number"
+              value={formData.medidas.bracoForcaEsquerdo || ""}
+              onChange={(e) => updateMedidas('bracoForcaEsquerdo', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="antebraco-direito" 
+              label="Antebraço (direito)" 
+              type="number"
+              value={formData.medidas.antebracoDireito || ""}
+              onChange={(e) => updateMedidas('antebracoDireito', e.target.value)}
+            />
+            <InputField 
+              id="antebraco-esquerdo" 
+              label="Antebraço (esquerdo)" 
+              type="number"
+              value={formData.medidas.antebracoEsquerdo || ""}
+              onChange={(e) => updateMedidas('antebracoEsquerdo', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="coxa-direita" 
+              label="Coxa (direita)" 
+              type="number"
+              value={formData.medidas.coxaProximalDireita || ""}
+              onChange={(e) => updateMedidas('coxaProximalDireita', e.target.value)}
+            />
+            <InputField 
+              id="coxa-esquerda" 
+              label="Coxa (esquerda)" 
+              type="number"
+              value={formData.medidas.coxaProximalEsquerda || ""}
+              onChange={(e) => updateMedidas('coxaProximalEsquerda', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="coxa-distal-direita" 
+              label="Coxa (distal) (direita)" 
+              type="number"
+              value={formData.medidas.coxaDistalDireita || ""}
+              onChange={(e) => updateMedidas('coxaDistalDireita', e.target.value)}
+            />
+            <InputField 
+              id="coxa-distal-esquerda" 
+              label="Coxa (distal) (esquerda)" 
+              type="number"
+              value={formData.medidas.coxaDistalEsquerda || ""}
+              onChange={(e) => updateMedidas('coxaDistalEsquerda', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="panturrilha-direita" 
+              label="Panturrilha (direita)" 
+              type="number"
+              value={formData.medidas.panturrilhaDireita || ""}
+              onChange={(e) => updateMedidas('panturrilhaDireita', e.target.value)}
+            />
+            <InputField 
+              id="panturrilha-esquerda" 
+              label="Panturrilha (esquerda)" 
+              type="number"
+              value={formData.medidas.panturrilhaEsquerda || ""}
+              onChange={(e) => updateMedidas('panturrilhaEsquerda', e.target.value)}
+            />
+          </InputRow>
+
+          {/* Medidas Unilaterais */}
+          <InputRow>
+            <InputField 
+              id="torax" 
+              label="Tórax" 
+              type="number"
+              value={formData.medidas.torax || ""}
+              onChange={(e) => updateMedidas('torax', e.target.value)}
+            />
+            <InputField 
+              id="abdomen" 
+              label="Abdômen" 
+              type="number"
+              value={formData.medidas.abdomen || ""}
+              onChange={(e) => updateMedidas('abdomen', e.target.value)}
+            />
+          </InputRow>
+
+          <InputRow>
+            <InputField 
+              id="cintura" 
+              label="Cintura" 
+              type="number"
+              value={formData.medidas.cintura || ""}
+              onChange={(e) => updateMedidas('cintura', e.target.value)}
+            />
+            <InputField 
+              id="quadril" 
+              label="Quadril" 
+              type="number"
+              value={formData.medidas.quadril || ""}
+              onChange={(e) => updateMedidas('quadril', e.target.value)}
+            />
+          </InputRow>
+
+          <button 
+            type="button" 
+            className="bg-medfit-blue rounded-lg p-4 mt-5 mb-button w-full cursor-pointer" 
+            onClick={handleCadastrar}
+          >
+            <span className="text-white text-center block w-full text-sm font-bold">Cadastrar</span>
           </button>
         </div>
       </div>
-
       <BottomNav />
     </div>
   );
