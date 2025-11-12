@@ -5,7 +5,7 @@ import "./Clientes.css";
 
 // Firebase
 import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
-import { db } from "../../firebase.config.js";
+import { db } from "../firebase.js";
 
 const Clientes = () => {
   const navigate = useNavigate();

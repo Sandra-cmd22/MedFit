@@ -12,7 +12,7 @@ import {
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; // Importe useNavigate
-import { db } from "../../firebase.config.js";
+import { db } from "../firebase.js";
 import BottomNav from "../components/BottomNav.jsx";
 import "./Home.css";
 

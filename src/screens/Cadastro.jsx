@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
-import { db } from "../../firebase.config.js";
+import { db } from "../firebase.js";
 import BottomNav from "../components/BottomNav.jsx";
 import "./Cadastro.css";
 registerLocale("pt-BR", ptBR);

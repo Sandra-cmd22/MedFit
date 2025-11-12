@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db } from "../../firebase.config";
+import { db } from "../firebase.js";
 import BottomNav from "../components/BottomNav.jsx";
 import "./Avaliacao.css";
 import {

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "./Historico.css";
 import BottomNav from "../components/BottomNav.jsx";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { db } from "../../firebase.config.js";
+import { db } from "../firebase.js";
 
 const Historico = () => {
   const location = useLocation();
