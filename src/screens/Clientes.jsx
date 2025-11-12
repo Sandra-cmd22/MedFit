@@ -4,7 +4,7 @@ import BottomNav from "../components/BottomNav.jsx";
 import "./Clientes.css";
 
 // Firebase
-import { collection, getDocs } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
 import { db } from "../../firebase.config.js";
 
 const Clientes = () => {
@@ -52,6 +52,39 @@ const Clientes = () => {
     navigate("/home", {
       state: { name: fullName, newEntry: { peso: c.peso, altura: c.altura } },
     });
+  };
+
+  const handleEdit = (cliente) => {
+    const fullName = `${cliente.nome}${
+      cliente.sobrenome ? " " + cliente.sobrenome : ""
+    }`;
+
+    localStorage.setItem("medfit_user_name", fullName);
+
+    navigate("/avaliacao", {
+      state: {
+        name: fullName,
+        clienteData: cliente,
+        clienteId: cliente.id,
+        from: "clientes",
+      },
+    });
+  };
+
+  const handleDelete = async (cliente) => {
+    const confirmation = window.confirm(
+      `Tem certeza de que deseja remover o cliente ${cliente.nome}?`
+    );
+
+    if (!confirmation) return;
+
+    try {
+      await deleteDoc(doc(db, "clientes", cliente.id));
+      setClientes((prev) => prev.filter((item) => item.id !== cliente.id));
+    } catch (error) {
+      console.error("Erro ao apagar cliente:", error);
+      alert("Não foi possível apagar o cliente. Tente novamente.");
+    }
   };
 
   return (
@@ -105,6 +138,7 @@ const Clientes = () => {
               <th>Sexo</th>
               <th>Altura</th>
               <th>Peso</th>
+              <th className="acoes-header">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -138,6 +172,26 @@ const Clientes = () => {
                   <td>{c.sexo}</td>
                   <td>{c.altura}</td>
                   <td>{c.peso}</td>
+                  <td>
+                    <div className="acoes">
+                      <button
+                        type="button"
+                        className="acao-btn editar"
+                        onClick={() => handleEdit(c)}
+                      >
+                        <span className="material-symbols-rounded">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="acao-btn apagar"
+                        onClick={() => handleDelete(c)}
+                      >
+                        <span className="material-symbols-rounded">
+                          delete
+                        </span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}

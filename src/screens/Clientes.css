@@ -103,4 +103,43 @@
 	cursor: pointer;
 	font-weight: 600;
 	font-family: 'Poppins', sans-serif;
-} 
+}
+
+.acoes-header {
+	text-align: center;
+}
+
+.acoes {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: center;
+}
+
+.acao-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	border: none;
+	cursor: pointer;
+	background: #f3f4f6;
+	color: #1c366a;
+	transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.acao-btn:hover {
+	background: #e0e7ff;
+	transform: translateY(-1px);
+}
+
+.acao-btn.apagar {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.acao-btn.apagar:hover {
+	background: #fecaca;
+}

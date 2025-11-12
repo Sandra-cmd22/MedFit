@@ -43,9 +43,17 @@ const Cadastro = () => {
         return Number.isNaN(v) ? NaN : v;
       };
 
+      const getNumberWithCommaConversion = (id) => {
+        const el = getEl(id);
+        if (!el) return NaN;
+        const value = (el.value || "").toString().replace(",", ".");
+        const v = parseFloat(value);
+        return Number.isNaN(v) ? NaN : v;
+      };
+
       const nome = (getEl("nome")?.value || "").toString().trim();
       const idade = (getEl("idade")?.value || "").toString().trim();
-      const altura = getNumber("altura");
+      const altura = getNumberWithCommaConversion("altura");
       const peso = getNumber("peso");
 
       if (!nome) {
@@ -62,9 +70,9 @@ const Cadastro = () => {
         antebracoDireito: getNumber("antebraco-direito"),
         antebracoEsquerdo: getNumber("antebraco-esquerdo"),
         torax: getNumber("torax"),
-        busto: getNumber("busto"),
         cintura: getNumber("cintura"),
         quadril: getNumber("quadril"),
+        abdomen: getNumber("abdomen"),
         coxaProximalDireita: getNumber("coxa-proximal-direita"),
         coxaProximalEsquerda: getNumber("coxa-proximal-esquerda"),
         coxaDistalDireita: getNumber("coxa-distal-direita"),
@@ -141,9 +149,23 @@ const Cadastro = () => {
             </div>
             <div className="col">
               <label className="label" htmlFor="altura">
-                Altura
+                Altura (cm)
               </label>
-              <input className="input" type="text" id="altura" />
+              <input 
+                className="input" 
+                type="number" 
+                id="altura" 
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                max="300"
+                placeholder="Ex: 1.80 ou 1,80"
+                onChange={(e) => {
+                  // Converte vírgula para ponto em tempo real
+                  const value = e.target.value.replace(",", ".");
+                  e.target.value = value;
+                }}
+              />
             </div>
           </div>
 
@@ -359,13 +381,13 @@ const Cadastro = () => {
               />
             </div>
             <div className="col">
-              <label className="label" htmlFor="busto">
-                Busto
+              <label className="label" htmlFor="abdomen">
+                Abdômen
               </label>
               <input
                 className="input"
                 type="number"
-                id="busto"
+                id="abdomen"
                 inputMode="decimal"
                 step="0.01"
                 min="0"

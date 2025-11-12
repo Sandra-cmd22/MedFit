@@ -1,5 +1,5 @@
 import { ptBR } from "date-fns/locale";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   updateDoc,
@@ -17,9 +18,31 @@ import {
 } from "firebase/firestore";
 registerLocale("pt-BR", ptBR);
 
+const createEmptyMedidas = () => ({
+  bracoDireito: "",
+  bracoEsquerdo: "",
+  bracoForcaDireito: "",
+  bracoForcaEsquerdo: "",
+  antebracoDireito: "",
+  antebracoEsquerdo: "",
+  coxaProximalDireita: "",
+  coxaProximalEsquerda: "",
+  coxaDistalDireita: "",
+  coxaDistalEsquerda: "",
+  panturrilhaDireita: "",
+  panturrilhaEsquerda: "",
+  torax: "",
+  cintura: "",
+  quadril: "",
+  abdomen: "",
+});
+
 const Avaliacao = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const clienteDataFromState = location?.state?.clienteData || null;
+  const clienteIdFromState =
+    location?.state?.clienteId || clienteDataFromState?.id || null;
   const personName =
     location?.state?.name ||
     (typeof window !== "undefined"
@@ -32,28 +55,40 @@ const Avaliacao = () => {
 
   // Estado para dados básicos e medidas
   const [dadosBasicos, setDadosBasicos] = useState({
-    idade: "",
-    peso: "",
+    idade: clienteDataFromState?.idade || "",
+    peso: clienteDataFromState?.peso || "",
   });
 
-  const [medidas, setMedidas] = useState({
-    bracoDireito: "",
-    bracoEsquerdo: "",
-    bracoForcaDireito: "",
-    bracoForcaEsquerdo: "",
-    antebracoDireito: "",
-    antebracoEsquerdo: "",
-    coxaProximalDireita: "",
-    coxaProximalEsquerda: "",
-    coxaDistalDireita: "",
-    coxaDistalEsquerda: "",
-    panturrilhaDireita: "",
-    panturrilhaEsquerda: "",
-    torax: "",
-    busto: "",
-    cintura: "",
-    quadril: "",
-  });
+  const [medidas, setMedidas] = useState(() =>
+    clienteDataFromState?.medidas
+      ? {
+          ...createEmptyMedidas(),
+          ...Object.entries(clienteDataFromState.medidas).reduce(
+            (acc, [key, value]) => ({
+              ...acc,
+              [key]:
+                value === undefined || value === null
+                  ? ""
+                  : typeof value === "number"
+                  ? value.toString()
+                  : value,
+            }),
+            {}
+          ),
+        }
+      : createEmptyMedidas()
+  );
+  const [clienteDocId, setClienteDocId] = useState(clienteIdFromState || null);
+  const [clienteInfo, setClienteInfo] = useState(clienteDataFromState || null);
+
+  const medidasNormalizadas = useMemo(() => {
+    const normalizadas = {};
+    Object.entries(medidas).forEach(([key, value]) => {
+      normalizadas[key] =
+        value === undefined || value === null ? "" : value.toString();
+    });
+    return normalizadas;
+  }, [medidas]);
 
   // Função para atualizar dados básicos
   const handleDadosBasicosChange = (field, value) => {
@@ -73,29 +108,45 @@ const Avaliacao = () => {
 
   // Carregar dados do cliente ao abrir a tela
   useEffect(() => {
+    const fillFromData = (data, id) => {
+      if (!data) return;
+      setClienteInfo(data);
+      setClienteDocId((prev) => id || prev || clienteIdFromState || data.id || null);
+      setDadosBasicos({
+        idade: data.idade || "",
+        peso: data.peso || "",
+      });
+
+      const medidasPreenchidas = createEmptyMedidas();
+      Object.keys(medidasPreenchidas).forEach((key) => {
+        const valor = data?.medidas?.[key];
+        medidasPreenchidas[key] =
+          valor === undefined || valor === null
+            ? ""
+            : typeof valor === "number"
+            ? valor.toString()
+            : valor;
+      });
+      setMedidas(medidasPreenchidas);
+    };
+
+    if (clienteDataFromState) {
+      fillFromData(clienteDataFromState, clienteIdFromState);
+      return;
+    }
+
+    if (!personName) return;
+
     const loadClienteData = async () => {
-      if (!personName) return;
-
       try {
-        // 1. Cria uma referência para a coleção 'clientes'
         const clientesRef = collection(db, "clientes");
-
-        // 2. Cria uma query para buscar o cliente pelo nome
         const q = query(clientesRef, where("nome", "==", personName));
-
-        // 3. Executa a query
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          // Se o cliente for encontrado, pega o primeiro documento
           const clienteDoc = querySnapshot.docs[0];
           const clienteData = clienteDoc.data();
-
-          // Carregar dados básicos se existirem
-          setDadosBasicos({
-            idade: clienteData.idade || "",
-            peso: clienteData.peso || "",
-          });
+          fillFromData(clienteData, clienteDoc.id);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do cliente:", error);
@@ -103,26 +154,52 @@ const Avaliacao = () => {
     };
 
     loadClienteData();
-  }, [personName]);
+  }, [clienteDataFromState, clienteIdFromState, personName]);
 
   // Função para salvar avaliação
   const handleAtualizar = async () => {
     try {
-      // 1. Buscar o cliente atual da coleção 'clientes'
-      const clientesRef = collection(db, "clientes");
-      const q = query(clientesRef, where("nome", "==", personName));
-      const clientesSnapshot = await getDocs(q);
+      // 1. Obter dados do cliente que será atualizado
+      let clienteId = clienteDocId;
+      let clienteAtual = clienteInfo;
 
-      if (clientesSnapshot.empty) {
-        alert(
-          "Cliente não encontrado. Por favor, cadastre o cliente primeiro."
-        );
-        return;
+      if (!clienteId || !clienteAtual) {
+        const clientesRef = collection(db, "clientes");
+        const q = query(clientesRef, where("nome", "==", personName));
+        const clientesSnapshot = await getDocs(q);
+
+        if (clientesSnapshot.empty) {
+          alert(
+            "Cliente não encontrado. Por favor, cadastre o cliente primeiro."
+          );
+          return;
+        }
+
+        const clienteDoc = clientesSnapshot.docs[0];
+        clienteAtual = clienteDoc.data();
+        clienteId = clienteDoc.id;
+        setClienteDocId(clienteId);
+        setClienteInfo(clienteAtual);
+      } else {
+        try {
+          const clienteDocRef = doc(db, "clientes", clienteId);
+          const snapshot = await getDoc(clienteDocRef);
+          if (snapshot.exists()) {
+            clienteAtual = snapshot.data();
+            setClienteInfo(clienteAtual);
+          }
+        } catch (error) {
+          console.warn(
+            "Não foi possível obter dados atualizados do cliente, usando cache local.",
+            error
+          );
+        }
       }
 
-      const clienteDoc = clientesSnapshot.docs[0];
-      const clienteAtual = clienteDoc.data();
-      const clienteId = clienteDoc.id; // Pega o ID único do documento
+      if (!clienteAtual) {
+        alert("Não foi possível carregar os dados do cliente.");
+        return;
+      }
 
       // 2. Preparar dados da nova avaliação
       const newEvaluation = {
@@ -130,7 +207,7 @@ const Avaliacao = () => {
         clienteNome: personName,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        medidas,
+        medidas: medidasNormalizadas,
         evaluationDate: new Date().toISOString(),
       };
 
@@ -147,12 +224,13 @@ const Avaliacao = () => {
         peso: dadosBasicos.peso || clienteAtual.peso,
         medidas: {
           ...clienteAtual.medidas,
-          ...medidas,
+          ...medidasNormalizadas,
         },
         dataUltimaAvaliacao: new Date().toISOString(),
       };
 
       await updateDoc(clienteDocRef, clienteAtualizado);
+      setClienteInfo(clienteAtualizado);
 
       // O localStorage para backup ainda funciona, mas é menos crítico
       const existingEvaluations = JSON.parse(
@@ -175,12 +253,12 @@ const Avaliacao = () => {
         state: {
           name: personName,
           newEntry: {
-            ...medidas,
+            ...medidasNormalizadas,
             idade: dadosBasicos.idade || clienteAtual.idade,
             peso: dadosBasicos.peso || clienteAtual.peso,
             altura: clienteAtual.altura,
-            cintura: medidas.cintura || "",
-            quadril: medidas.quadril || "",
+            cintura: medidasNormalizadas.cintura || "",
+            quadril: medidasNormalizadas.quadril || "",
           },
         },
       });
@@ -587,18 +665,18 @@ const Avaliacao = () => {
             />
           </div>
           <div className="col-av">
-            <label className="label-av" htmlFor="busto">
-              Busto
+            <label className="label-av" htmlFor="abdomen">
+              Abdômen
             </label>
             <input
               className="input-av"
               type="number"
-              id="busto"
+              id="abdomen"
               inputMode="decimal"
               step="0.01"
               min="0"
-              value={medidas.busto}
-              onChange={(e) => handleMedidaChange("busto", e.target.value)}
+              value={medidas.abdomen}
+              onChange={(e) => handleMedidaChange("abdomen", e.target.value)}
             />
           </div>
         </div>
@@ -619,6 +697,7 @@ const Avaliacao = () => {
               onChange={(e) => handleMedidaChange("cintura", e.target.value)}
             />
           </div>
+          
           <div className="col-av">
             <label className="label-av" htmlFor="quadril">
               Quadril
@@ -635,6 +714,7 @@ const Avaliacao = () => {
             />
           </div>
         </div>
+
 
         <button
           className="primary-btn-av"

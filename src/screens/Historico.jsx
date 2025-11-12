@@ -88,6 +88,7 @@ const Historico = () => {
       "torax",
       "cintura",
       "quadril",
+      "abdomen",
       "coxaProximalDireita",
       "coxaProximalEsquerda",
       "coxaDistalDireita",
@@ -102,7 +103,7 @@ const Historico = () => {
 
       if (!isNaN(valorAtual) && !isNaN(valorAnterior)) {
         const isMelhoria =
-          medida === "cintura"
+          medida === "cintura" || medida === "abdomen"
             ? valorAtual < valorAnterior
             : valorAtual > valorAnterior;
 
@@ -201,6 +202,7 @@ const Historico = () => {
 • Tórax: ${medidas.torax || "-"} cm
 • Cintura: ${medidas.cintura || "-"} cm
 • Quadril: ${medidas.quadril || "-"} cm
+• Abdômen: ${medidas.abdomen || "-"} cm
 • Coxa Proximal Direita: ${medidas.coxaProximalDireita || "-"} cm
 • Coxa Proximal Esquerda: ${medidas.coxaProximalEsquerda || "-"} cm
 • Coxa Distal Direita: ${medidas.coxaDistalDireita || "-"} cm
@@ -407,6 +409,10 @@ const Historico = () => {
             <div className="medida-item">
               <span className="label">Quadril:</span>
               {renderizarValorComComparacao("quadril", medidas.quadril)}
+            </div>
+            <div className="medida-item">
+              <span className="label">Abdômen:</span>
+              {renderizarValorComComparacao("abdomen", medidas.abdomen)}
             </div>
             <div className="medida-item">
               <span className="label">Coxa Proximal Direita:</span>
