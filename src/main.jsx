@@ -11,6 +11,7 @@ import Clientes from './screens/Clientes.jsx';
 import Avaliacao from './screens/Avaliacao.jsx';
 import Configuracao from './screens/Configuracao.jsx';
 import Historico from './screens/Historico.jsx';
+import ExtratoFinanceiro from './screens/ExtratoFinanceiro.jsx';
 
 // PWA
 import PWAInstaller from './components/PWAInstaller.jsx';
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/avaliacao" element={<Avaliacao />} />
         <Route path="/config" element={<Configuracao />} />
         <Route path="/historico" element={<Historico />} />
+        <Route path="/extrato" element={<ExtratoFinanceiro />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

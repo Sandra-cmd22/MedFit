@@ -5,6 +5,7 @@ import './BottomNav.css';
 const tabs = [
 	{ key: 'home', label: 'Home', icon: 'home', path: '/home' },
 	{ key: 'clientes', label: 'Clientes', icon: 'groups', path: '/clientes' },
+	{ key: 'extrato', label: 'Extrato', icon: 'receipt_long', path: '/extrato' },
 	{ key: 'avaliacao', label: 'Avaliação', icon: 'assignment', path: '/avaliacao' },
 	{ key: 'cadastro', label: 'Cadastrar', icon: 'person_add', path: '/cadastro' },
 ];

@@ -78,6 +78,9 @@ const Avaliacao = () => {
         }
       : createEmptyMedidas()
   );
+  const [plano, setPlano] = useState(
+    clienteDataFromState?.plano ? clienteDataFromState.plano.toString() : ""
+  );
   const [clienteDocId, setClienteDocId] = useState(clienteIdFromState || null);
   const [clienteInfo, setClienteInfo] = useState(clienteDataFromState || null);
 
@@ -111,11 +114,16 @@ const Avaliacao = () => {
     const fillFromData = (data, id) => {
       if (!data) return;
       setClienteInfo(data);
-      setClienteDocId((prev) => id || prev || clienteIdFromState || data.id || null);
+      setClienteDocId(
+        (prev) => id || prev || clienteIdFromState || data.id || null
+      );
       setDadosBasicos({
         idade: data.idade || "",
         peso: data.peso || "",
       });
+      setPlano(
+        data?.plano === 3 || data?.plano === 5 ? data.plano.toString() : ""
+      );
 
       const medidasPreenchidas = createEmptyMedidas();
       Object.keys(medidasPreenchidas).forEach((key) => {
@@ -180,6 +188,11 @@ const Avaliacao = () => {
         clienteId = clienteDoc.id;
         setClienteDocId(clienteId);
         setClienteInfo(clienteAtual);
+        setPlano(
+          clienteAtual?.plano === 3 || clienteAtual?.plano === 5
+            ? clienteAtual.plano.toString()
+            : ""
+        );
       } else {
         try {
           const clienteDocRef = doc(db, "clientes", clienteId);
@@ -187,6 +200,11 @@ const Avaliacao = () => {
           if (snapshot.exists()) {
             clienteAtual = snapshot.data();
             setClienteInfo(clienteAtual);
+            setPlano(
+              clienteAtual?.plano === 3 || clienteAtual?.plano === 5
+                ? clienteAtual.plano.toString()
+                : ""
+            );
           }
         } catch (error) {
           console.warn(
@@ -222,6 +240,10 @@ const Avaliacao = () => {
         ...clienteAtual,
         idade: dadosBasicos.idade || clienteAtual.idade,
         peso: dadosBasicos.peso || clienteAtual.peso,
+        plano:
+          plano === "3" || plano === "5"
+            ? Number(plano)
+            : clienteAtual?.plano ?? null,
         medidas: {
           ...clienteAtual.medidas,
           ...medidasNormalizadas,
@@ -416,6 +438,24 @@ const Avaliacao = () => {
               value={dadosBasicos.peso}
               onChange={(e) => handleDadosBasicosChange("peso", e.target.value)}
             />
+          </div>
+        </div>
+
+        <div className="row-av">
+          <div className="col-av">
+            <label className="label-av" htmlFor="plano">
+              Plano semanal
+            </label>
+            <select
+              id="plano"
+              className="input-av"
+              value={plano}
+              onChange={(e) => setPlano(e.target.value)}
+            >
+              <option value="">Selecione</option>
+              <option value="3">3 dias por semana</option>
+              <option value="5">5 dias por semana</option>
+            </select>
           </div>
         </div>
 

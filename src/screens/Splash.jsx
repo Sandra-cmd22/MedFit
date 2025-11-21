@@ -1,34 +1,81 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Splash.css";
-import splashImg from "../assets/imagem.png"; // Corrigido o nome do arquivo
+import splashImg from "../assets/imagem.png";
+
+const PASSWORD = "adelina";
 
 const Splash = () => {
   const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const alreadyLogged = localStorage.getItem("medfit_auth") === "true";
+    if (alreadyLogged) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const normalized = (password || "").trim();
+      if (normalized !== PASSWORD) {
+        setError("Senha incorreta. Tente novamente.");
+        return;
+      }
+      localStorage.setItem("medfit_auth", "true");
+      navigate("/home", { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="splash-container">
       <div className="splash-logo">
         <span className="logo-text">MedFit</span>
       </div>
-      <img src={splashImg} alt="MedFit" className="splash-img" />{" "}
-      {/* Corrigida a classe */}
+      <img src={splashImg} alt="MedFit" className="splash-img" />
+
       <div className="splash-card">
-        <h2 className="splash-title">Pronto para começar sua jornada?</h2>
+        <h2 className="splash-title">Bem-vinda(o)!</h2>
         <p className="splash-subtitle">
-          Seu progresso, registrado de forma simples.
+          Digite a senha de acesso para abrir o painel seguro.
         </p>
-        <div className="splash-buttons">
-          <button className="primary-btn" onClick={() => navigate("/cadastro")}>
-            Cadastrar Cliente
+
+        <form className="splash-form" onSubmit={handleSubmit}>
+          <label className="splash-label" htmlFor="password">
+            Senha
+          </label>
+          <div className="splash-input-wrapper">
+            <span
+              className="material-symbols-rounded splash-icon"
+              style={{ fontVariationSettings: '"wght" 300' }}
+            >
+              lock
+            </span>
+            <input
+              id="password"
+              type="password"
+              className="splash-input"
+              placeholder="Digite a senha"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          {error && <p className="splash-error">{error}</p>}
+
+          <button className="primary-btn" type="submit" disabled={loading}>
+            {loading ? "Verificando..." : "Entrar"}
           </button>
-          <button
-            className="secondary-btn"
-            onClick={() => navigate("/clientes")}
-          >
-            Ver Cliente
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );

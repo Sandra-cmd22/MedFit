@@ -12,6 +12,7 @@ registerLocale("pt-BR", ptBR);
 const Cadastro = () => {
   const navigate = useNavigate();
   const [sexo, setSexo] = useState("");
+  const [plano, setPlano] = useState("");
   const [, setClientes] = useState([]);
 
   useEffect(() => {
@@ -61,6 +62,11 @@ const Cadastro = () => {
         return;
       }
 
+      if (!plano) {
+        alert("Selecione o plano semanal do cliente.");
+        return;
+      }
+
       // Coletar todas as medidas
       const medidas = {
         bracoDireito: getNumber("braco-direito"),
@@ -87,6 +93,7 @@ const Cadastro = () => {
         altura,
         peso,
         sexo, // certifique-se que `sexo` está definido no escopo
+        plano: Number(plano),
         medidas,
         dataCadastro: new Date().toISOString(),
       };
@@ -193,6 +200,25 @@ const Cadastro = () => {
               <input className="input" type="text" id="peso" />
             </div>
           </div>
+
+        <div className="row">
+          <div className="col">
+            <label className="label" htmlFor="plano">
+              Plano semanal
+            </label>
+            <select
+              id="plano"
+              name="plano"
+              className="input"
+              value={plano}
+              onChange={(e) => setPlano(e.target.value)}
+            >
+              <option value="">Selecione</option>
+              <option value="3">3 dias por semana</option>
+              <option value="5">5 dias por semana</option>
+            </select>
+          </div>
+        </div>
 
           <span className="section-title medidas-title">Medidas</span>
 
