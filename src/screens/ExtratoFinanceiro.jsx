@@ -66,12 +66,17 @@ const ExtratoFinanceiro = () => {
     return capitalize(formatted);
   }, [competenciaDate]);
 
+  // Filtrar apenas clientes ativos
+  const clientesAtivos = useMemo(() => {
+    return clientes.filter((cliente) => cliente.status !== false);
+  }, [clientes]);
+
   const totalMensal = useMemo(() => {
-    return clientes.reduce((acc, cliente) => {
+    return clientesAtivos.reduce((acc, cliente) => {
       const planoValor = PLANOS[cliente.plano]?.valor || 0;
       return acc + planoValor;
     }, 0);
-  }, [clientes]);
+  }, [clientesAtivos]);
 
   const handlePlanoChange = async (clienteId, novoPlano) => {
     const planoNumero = Number(novoPlano);
@@ -148,10 +153,10 @@ const ExtratoFinanceiro = () => {
       <section className="extrato-list">
         {loading ? (
           <div className="extrato-state">Carregando clientes...</div>
-        ) : clientes.length === 0 ? (
-          <div className="extrato-state">Nenhum cliente cadastrado.</div>
+        ) : clientesAtivos.length === 0 ? (
+          <div className="extrato-state">Nenhum cliente ativo encontrado.</div>
         ) : (
-          clientes.map((cliente) => {
+          clientesAtivos.map((cliente) => {
             const nomeCompleto = `${cliente.nome}${
               cliente.sobrenome ? ` ${cliente.sobrenome}` : ""
             }`;

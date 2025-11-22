@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav.jsx";
+import ModalAcoesCliente from "../components/ModalAcoesCliente.jsx";
 import "./Clientes.css";
 
 // Firebase
-import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { db } from "../firebase.js";
 
 const Clientes = () => {
@@ -12,6 +13,8 @@ const Clientes = () => {
   const [query, setQuery] = useState("");
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState(null);
 
   // 🔹 Busca clientes no Firestore
   const loadClientes = async () => {
@@ -54,21 +57,58 @@ const Clientes = () => {
     });
   };
 
-  const handleEdit = (cliente) => {
-    const fullName = `${cliente.nome}${
-      cliente.sobrenome ? " " + cliente.sobrenome : ""
+  // Abre o modal de ações ao clicar no botão de editar
+  const handleEditClick = (cliente) => {
+    setClienteSelecionado(cliente);
+    setModalOpen(true);
+  };
+
+  // Redireciona para a tela de edição
+  const handleEditarDados = () => {
+    if (!clienteSelecionado) return;
+
+    const fullName = `${clienteSelecionado.nome}${
+      clienteSelecionado.sobrenome ? " " + clienteSelecionado.sobrenome : ""
     }`;
 
     localStorage.setItem("medfit_user_name", fullName);
 
+    setModalOpen(false);
     navigate("/avaliacao", {
       state: {
         name: fullName,
-        clienteData: cliente,
-        clienteId: cliente.id,
+        clienteData: clienteSelecionado,
+        clienteId: clienteSelecionado.id,
         from: "clientes",
       },
     });
+  };
+
+  // Alterna o status do cliente (ativo/inativo)
+  const toggleClientStatus = async () => {
+    if (!clienteSelecionado) return;
+
+    try {
+      const clienteRef = doc(db, "clientes", clienteSelecionado.id);
+      const novoStatus = clienteSelecionado.status !== false ? false : true;
+      
+      await updateDoc(clienteRef, { status: novoStatus });
+      
+      // Atualiza o estado local
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.id === clienteSelecionado.id
+            ? { ...c, status: novoStatus }
+            : c
+        )
+      );
+
+      setModalOpen(false);
+      setClienteSelecionado(null);
+    } catch (error) {
+      console.error("Erro ao alterar status do cliente:", error);
+      alert("Não foi possível alterar o status do cliente. Tente novamente.");
+    }
   };
 
   const handleDelete = async (cliente) => {
@@ -138,6 +178,7 @@ const Clientes = () => {
               <th>Sexo</th>
               <th>Altura</th>
               <th>Peso</th>
+              <th>Status</th>
               <th className="acoes-header">Ações</th>
             </tr>
           </thead>
@@ -145,7 +186,7 @@ const Clientes = () => {
             {loading ? (
               <tr>
                 <td
-                  colSpan="5"
+                  colSpan="7"
                   style={{ textAlign: "center", padding: "20px" }}
                 >
                   Carregando clientes...
@@ -154,50 +195,73 @@ const Clientes = () => {
             ) : clients.length === 0 ? (
               <tr>
                 <td
-                  colSpan="5"
+                  colSpan="7"
                   style={{ textAlign: "center", padding: "20px" }}
                 >
                   Nenhum cliente encontrado
                 </td>
               </tr>
             ) : (
-              clients.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <button className="name-pill" onClick={() => goToHome(c)}>
-                      {`${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`}
-                    </button>
-                  </td>
-                  <td>{c.idade}</td>
-                  <td>{c.sexo}</td>
-                  <td>{c.altura}</td>
-                  <td>{c.peso}</td>
-                  <td>
-                    <div className="acoes">
-                      <button
-                        type="button"
-                        className="acao-btn editar"
-                        onClick={() => handleEdit(c)}
+              clients.map((c) => {
+                const isInativo = c.status === false;
+                return (
+                  <tr key={c.id} className={isInativo ? "cliente-inativo" : ""}>
+                    <td>
+                      <button 
+                        className={`name-pill ${isInativo ? "name-pill-inativo" : ""}`} 
+                        onClick={() => goToHome(c)}
                       >
-                        <span className="material-symbols-rounded">edit</span>
+                        {`${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`}
                       </button>
-                      <button
-                        type="button"
-                        className="acao-btn apagar"
-                        onClick={() => handleDelete(c)}
-                      >
-                        <span className="material-symbols-rounded">
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className={isInativo ? "texto-inativo" : ""}>{c.idade}</td>
+                    <td className={isInativo ? "texto-inativo" : ""}>{c.sexo}</td>
+                    <td className={isInativo ? "texto-inativo" : ""}>{c.altura}</td>
+                    <td className={isInativo ? "texto-inativo" : ""}>{c.peso}</td>
+                    <td>
+                      <span className={`status-badge ${isInativo ? "status-inativo" : "status-ativo"}`}>
+                        {isInativo ? "Inativo" : "Ativo"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="acoes">
+                        <button
+                          type="button"
+                          className="acao-btn editar"
+                          onClick={() => handleEditClick(c)}
+                        >
+                          <span className="material-symbols-rounded">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="acao-btn apagar"
+                          onClick={() => handleDelete(c)}
+                        >
+                          <span className="material-symbols-rounded">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      <ModalAcoesCliente
+        cliente={clienteSelecionado}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setClienteSelecionado(null);
+        }}
+        onEditarDados={handleEditarDados}
+        onToggleStatus={toggleClientStatus}
+      />
+
       <BottomNav />
     </div>
   );

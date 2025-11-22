@@ -461,6 +461,74 @@ const Avaliacao = () => {
 
         <div className="section-title-av">Medidas</div>
 
+        {/* Medidas principais - Tórax, Abdômen, Cintura, Quadril */}
+        <div className="row-av">
+          <div className="col-av">
+            <label className="label-av" htmlFor="torax">
+              Tórax
+            </label>
+            <input
+              className="input-av"
+              type="number"
+              id="torax"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={medidas.torax}
+              onChange={(e) => handleMedidaChange("torax", e.target.value)}
+            />
+          </div>
+          <div className="col-av">
+            <label className="label-av" htmlFor="abdomen">
+              Abdômen
+            </label>
+            <input
+              className="input-av"
+              type="number"
+              id="abdomen"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={medidas.abdomen}
+              onChange={(e) => handleMedidaChange("abdomen", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="row-av">
+          <div className="col-av">
+            <label className="label-av" htmlFor="cintura">
+              Cintura
+            </label>
+            <input
+              className="input-av"
+              type="number"
+              id="cintura"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={medidas.cintura}
+              onChange={(e) => handleMedidaChange("cintura", e.target.value)}
+            />
+          </div>
+          <div className="col-av">
+            <label className="label-av" htmlFor="quadril">
+              Quadril
+            </label>
+            <input
+              className="input-av"
+              type="number"
+              id="quadril"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={medidas.quadril}
+              onChange={(e) => handleMedidaChange("quadril", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Demais medidas */}
         <div className="row-av">
           <div className="col-av">
             <label className="label-av" htmlFor="braco-direito">
@@ -574,8 +642,6 @@ const Avaliacao = () => {
           </div>
         </div>
 
-        {/* Unilateral fields moved to the end: tórax, cintura, quadril */}
-
         <div className="row-av">
           <div className="col-av">
             <label className="label-av" htmlFor="coxa-proximal-direita">
@@ -686,75 +752,6 @@ const Avaliacao = () => {
             />
           </div>
         </div>
-
-        {/* Unilateral fields */}
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="torax">
-              Tórax
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="torax"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.torax}
-              onChange={(e) => handleMedidaChange("torax", e.target.value)}
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="abdomen">
-              Abdômen
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="abdomen"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.abdomen}
-              onChange={(e) => handleMedidaChange("abdomen", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="cintura">
-              Cintura
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="cintura"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.cintura}
-              onChange={(e) => handleMedidaChange("cintura", e.target.value)}
-            />
-          </div>
-          
-          <div className="col-av">
-            <label className="label-av" htmlFor="quadril">
-              Quadril
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="quadril"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.quadril}
-              onChange={(e) => handleMedidaChange("quadril", e.target.value)}
-            />
-          </div>
-        </div>
-
 
         <button
           className="primary-btn-av"

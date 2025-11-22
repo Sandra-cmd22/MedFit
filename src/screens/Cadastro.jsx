@@ -95,6 +95,7 @@ const Cadastro = () => {
         sexo, // certifique-se que `sexo` está definido no escopo
         plano: Number(plano),
         medidas,
+        status: true, // Por padrão, clientes são criados como ativos
         dataCadastro: new Date().toISOString(),
       };
 
@@ -222,6 +223,65 @@ const Cadastro = () => {
 
           <span className="section-title medidas-title">Medidas</span>
 
+          {/* Medidas principais - Tórax, Abdômen, Cintura, Quadril */}
+          <div className="row">
+            <div className="col">
+              <label className="label" htmlFor="torax">
+                Tórax
+              </label>
+              <input
+                className="input"
+                type="number"
+                id="torax"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className="col">
+              <label className="label" htmlFor="abdomen">
+                Abdômen
+              </label>
+              <input
+                className="input"
+                type="number"
+                id="abdomen"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+          <div className="row">
+            <div className="col">
+              <label className="label" htmlFor="cintura">
+                Cintura
+              </label>
+              <input
+                className="input"
+                type="number"
+                id="cintura"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className="col">
+              <label className="label" htmlFor="quadril">
+                Quadril
+              </label>
+              <input
+                className="input"
+                type="number"
+                id="quadril"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Demais medidas */}
           <div className="row">
             <div className="col">
               <label className="label" htmlFor="braco-direito">
@@ -386,62 +446,6 @@ const Cadastro = () => {
                 className="input"
                 type="number"
                 id="panturrilha-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="torax">
-                Tórax
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="torax"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="abdomen">
-                Abdômen
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="abdomen"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="cintura">
-                Cintura
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="cintura"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="quadril">
-                Quadril
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="quadril"
                 inputMode="decimal"
                 step="0.01"
                 min="0"

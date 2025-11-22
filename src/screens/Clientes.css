@@ -143,3 +143,36 @@
 .acao-btn.apagar:hover {
 	background: #fecaca;
 }
+
+/* Estilos para clientes inativos */
+.cliente-inativo {
+	opacity: 0.6;
+	background: #F9FAFB;
+}
+
+.texto-inativo {
+	color: #9CA3AF;
+}
+
+.name-pill-inativo {
+	background: #E5E7EB !important;
+	color: #6B7280 !important;
+}
+
+.status-badge {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.status-ativo {
+	background: #D1FAE5;
+	color: #065F46;
+}
+
+.status-inativo {
+	background: #FEE2E2;
+	color: #991B1B;
+}
