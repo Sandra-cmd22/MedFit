@@ -120,6 +120,10 @@
   color: #fff;
 }
 
+.modal-btn-primary span {
+  color: #fff !important;
+}
+
 .modal-btn-primary:hover {
   background: #0a4370;
   transform: translateY(-1px);
