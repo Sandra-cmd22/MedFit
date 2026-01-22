@@ -35,23 +35,31 @@
 	border: none;
 	padding: 6px 8px;
 	cursor: pointer;
-	color: #6a717c;
 	font-family: 'Poppins', sans-serif;
 	min-width: 0;
 }
 
-.nav-item.active {
-	color: #D70C1C;
+/* Estado não selecionado - cinza quase preto */
+.nav-item:not(.active) .nav-icon,
+.nav-item:not(.active) .nav-label {
+	color: #333333 !important;
+	transition: color 0.2s ease;
+}
+
+/* Estado selecionado - vermelho */
+.nav-item.active .nav-icon,
+.nav-item.active .nav-label {
+	color: #D70C1C !important;
+	transition: color 0.2s ease;
 }
 
 .nav-icon {
 	font-size: 32px;
 	line-height: 1;
-	
-	
-
+	display: inline-block;
 }
 
 .nav-label {
 	font-size: 12px;
+	display: inline-block;
 } 

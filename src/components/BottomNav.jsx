@@ -20,7 +20,7 @@ const BottomNav = () => {
 				const active = location.pathname.startsWith(t.path);
 				return (
 					<button key={t.key} className={`nav-item${active ? ' active' : ''}`} onClick={() => navigate(t.path)}>
-						<span className="material-symbols-rounded nav-icon" style={{ fontVariationSettings: '"wght" 300' }}>{t.icon}</span>
+						<span className="material-symbols-rounded nav-icon" style={{ fontVariationSettings: '"wght" 300', color: 'inherit' }}>{t.icon}</span>
 						<span className="nav-label">{t.label}</span>
 					</button>
 				);
