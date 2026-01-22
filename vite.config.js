@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'MedFit',
         short_name: 'MedFit',
         description: 'Sistema de avaliação física e acompanhamento de clientes',
-        theme_color: '#0C518D',
+        theme_color: '#D70C1C',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
