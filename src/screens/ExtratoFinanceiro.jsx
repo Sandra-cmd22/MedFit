@@ -36,6 +36,7 @@ const ExtratoFinanceiro = () => {
     const mes = String(hoje.getMonth() + 1).padStart(2, "0");
     return `${hoje.getFullYear()}-${mes}`;
   });
+  const [isAtBottom, setIsAtBottom] = useState(false);
 
   const loadClientes = async () => {
     setLoading(true);
@@ -88,6 +89,24 @@ const ExtratoFinanceiro = () => {
 
   useEffect(() => {
     loadClientes();
+  }, []);
+
+  // Detectar se está no final da página
+  useEffect(() => {
+    const handleScroll = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const isBottom = scrollTop + windowHeight >= documentHeight - 100; // 100px de margem
+      setIsAtBottom(isBottom);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Verificar posição inicial
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const competenciaDate = useMemo(() => {
@@ -745,12 +764,6 @@ const ExtratoFinanceiro = () => {
             <strong>{competenciaLabel}</strong>
           </div>
           <div className="extrato-filter-control">
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
-            >
-              calendar_month
-            </span>
             <input
               type="month"
               id="competencia"
@@ -943,18 +956,29 @@ const ExtratoFinanceiro = () => {
         </div>
       )}
 
-      {/* Botão para ir ao final da página */}
+      {/* Botão para ir ao final/topo da página */}
       <button
         className="btn-scroll-to-bottom"
         onClick={() => {
-          window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: 'smooth'
-          });
+          if (isAtBottom) {
+            // Ir para o topo
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+          } else {
+            // Ir para o final
+            window.scrollTo({
+              top: document.documentElement.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
         }}
-        title="Ir para o final"
+        title={isAtBottom ? "Ir para o topo" : "Ir para o final"}
       >
-        <span className="material-symbols-rounded">keyboard_arrow_down</span>
+        <span className="material-symbols-rounded">
+          {isAtBottom ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+        </span>
       </button>
 
       <BottomNav />

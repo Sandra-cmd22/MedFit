@@ -1,7 +1,4 @@
-import { ptBR } from "date-fns/locale";
 import { useEffect, useMemo, useState } from "react";
-import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase.js";
 import BottomNav from "../components/BottomNav.jsx";
@@ -16,7 +13,6 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-registerLocale("pt-BR", ptBR);
 
 const createEmptyMedidas = () => ({
   bracoDireito: "",
@@ -49,9 +45,6 @@ const Avaliacao = () => {
       ? localStorage.getItem("medfit_user_name")
       : "") ||
     "";
-
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
 
   // Estado para dados básicos e medidas
   const [dadosBasicos, setDadosBasicos] = useState({
@@ -220,13 +213,14 @@ const Avaliacao = () => {
       }
 
       // 2. Preparar dados da nova avaliação
+      const dataAtual = new Date();
       const newEvaluation = {
         clienteId, // Usa o ID do documento do cliente
         clienteNome: personName,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: dataAtual.toISOString(),
+        endDate: dataAtual.toISOString(),
         medidas: medidasNormalizadas,
-        evaluationDate: new Date().toISOString(),
+        evaluationDate: dataAtual.toISOString(),
       };
 
       // 3. Salvar avaliação na coleção 'avaliacoes'
@@ -307,101 +301,6 @@ const Avaliacao = () => {
           <h1 className="title-av">Avaliação</h1>
         </div>
         {personName && <div className="person-name">{personName}</div>}
-
-        <div className="date-row-av">
-          <div className="date-group-av">
-            <span className="date-label-av">Data inicial</span>
-            <div className="date-field-av">
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => setStartDate(date)}
-                locale="pt-BR"
-                dateFormat="dd/MM/yyyy"
-                showYearDropdown
-                scrollableYearDropdown
-                yearDropdownItemNumber={15}
-                popperPlacement="bottom-start"
-                popperModifiers={[
-                  { name: "offset", options: { offset: [0, 8] } },
-                  {
-                    name: "preventOverflow",
-                    options: { rootBoundary: "viewport", padding: 8 },
-                  },
-                  {
-                    name: "flip",
-                    options: {
-                      fallbackPlacements: ["top-start", "bottom-end"],
-                    },
-                  },
-                ]}
-                calendarClassName="custom-datepicker"
-                customInput={
-                  <button
-                    type="button"
-                    className="date-btn-av"
-                    aria-label="Selecionar data inicial"
-                  >
-                    <span
-                      className="material-symbols-rounded date-icon-av"
-                      style={{ color: "#fff" }}
-                    >
-                      calendar_month
-                    </span>
-                    <span className="date-text-av">
-                      {startDate.toLocaleDateString("pt-BR")}
-                    </span>
-                  </button>
-                }
-              />
-            </div>
-          </div>
-          <div className="date-group-av">
-            <span className="date-label-av">Data final</span>
-            <div className="date-field-av">
-              <DatePicker
-                selected={endDate}
-                onChange={(date) => setEndDate(date)}
-                locale="pt-BR"
-                dateFormat="dd/MM/yyyy"
-                showYearDropdown
-                scrollableYearDropdown
-                yearDropdownItemNumber={15}
-                popperPlacement="bottom-start"
-                popperModifiers={[
-                  { name: "offset", options: { offset: [0, 8] } },
-                  {
-                    name: "preventOverflow",
-                    options: { rootBoundary: "viewport", padding: 8 },
-                  },
-                  {
-                    name: "flip",
-                    options: {
-                      fallbackPlacements: ["top-start", "bottom-end"],
-                    },
-                  },
-                ]}
-                calendarClassName="custom-datepicker"
-                customInput={
-                  <button
-                    type="button"
-                    className="date-btn-av"
-                    aria-label="Selecionar data final"
-                  >
-                    <span
-                      className="material-symbols-rounded date-icon-av"
-                      style={{ color: "#fff" }}
-                    >
-                      calendar_month
-                    </span>
-                    <span className="date-text-av">
-                      {endDate.toLocaleDateString("pt-BR")}
-                    </span>
-                  </button>
-                }
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="section-title-av">Dados Básicos</div>
 

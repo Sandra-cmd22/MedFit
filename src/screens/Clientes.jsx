@@ -241,7 +241,7 @@ const Clientes = () => {
                         className={`name-pill ${isInativo ? "name-pill-inativo" : ""}`} 
                         onClick={() => goToHome(c)}
                       >
-                        {`${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`}
+                        {`${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`.toLowerCase()}
                       </button>
                     </td>
                     <td className={isInativo ? "texto-inativo" : ""}>{c.idade}</td>

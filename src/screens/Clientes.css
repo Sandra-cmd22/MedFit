@@ -2,17 +2,25 @@
 .clientes-container {
 	min-height: 100vh;
 	padding: 16px;
-	padding-bottom: 80px; /* espaço para a bottom nav */
+	padding-bottom: 90px; /* espaço para a bottom nav */
 	background: #fff;
 	font-family: 'Poppins', sans-serif;
 	width: 100%;
+	box-sizing: border-box;
+	overflow-x: hidden;
 }
 
 /* Limite de largura para web */
 @media (min-width: 768px) {
 	.clientes-container {
-		max-width: 600px;
+		max-width: 900px;
 		margin: 0 auto;
+	}
+}
+
+@media (min-width: 1024px) {
+	.clientes-container {
+		max-width: 1200px;
 	}
 }
 
@@ -21,6 +29,14 @@
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 12px;
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.clientes-header .icon-btn {
+	flex-shrink: 0;
+	min-width: 40px;
+	padding: 8px;
 }
 
 .icon-btn {
@@ -45,6 +61,15 @@
 	color: #000;
 	flex: 1;
 	text-align: center;
+	min-width: 0;
+	word-break: break-word;
+	overflow-wrap: break-word;
+}
+
+@media (max-width: 480px) {
+	.clientes-title {
+		font-size: 20px;
+	}
 }
 
 .search-label {
@@ -61,7 +86,10 @@
 	padding: 8px 10px;
 	margin: 6px 0 24px 0;
 	background: #fff;
-	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
 }
 
 .search-icon {
@@ -74,6 +102,9 @@
 	outline: none;
 	font-size: 14px;
 	font-family: 'Poppins', sans-serif;
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
 }
 .input{
 
@@ -91,6 +122,9 @@
 	border: 1px solid #E5E7EB;
 	border-radius: 8px;
 	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	box-sizing: border-box;
+	-webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -115,13 +149,18 @@
 
 .name-pill {
 	background: #E3EFF9;
-	color: #D70C1C;
+	color: #1c366a;
 	border: none;
 	border-radius: 999px;
 	padding: 6px 12px;
 	cursor: pointer;
 	font-weight: 600;
 	font-family: 'Poppins', sans-serif;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+	display: inline-block;
 }
 
 .acoes-header {
@@ -192,6 +231,25 @@
 }
 
 .status-inativo {
+	background: #FEE2E2;
+	color: #991B1B;
+}
+
+.situacao-badge {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.situacao-em-dia {
+	background: #D1FAE5;
+	color: #065F46;
+}
+
+.situacao-atrasado {
 	background: #FEE2E2;
 	color: #991B1B;
 }

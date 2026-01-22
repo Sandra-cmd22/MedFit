@@ -186,33 +186,20 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      {/* Título fixo no topo */}
+      {/* Faixa preta com nome e informações */}
       <div className="home-header">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "12px",
-            gap: "8px",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          <h1 className="home-title">{userName}</h1>
+        <div className="home-client-info">
+          <h1 className="home-client-name">{userName}</h1>
+          {clienteData && (
+            <div className="home-client-details">
+              <div>Idade: {clienteData.idade || "-"} anos</div>
+              <div>Altura: {clienteData.altura || "-"} cm</div>
+              <div>Peso: {clienteData.peso || "-"} kg</div>
+              <div>Sexo: {clienteData.sexo || "-"}</div>
+            </div>
+          )}
           {updating && (
-            <div
-              className="updating-indicator"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "11px",
-                color: "#D70C1C",
-                flexShrink: 0,
-                whiteSpace: "nowrap",
-              }}
-            >
+            <div className="updating-indicator">
               <span
                 className="material-symbols-rounded"
                 style={{ fontSize: "14px", animation: "spin 1s linear infinite" }}
@@ -227,15 +214,6 @@ const Home = () => {
 
       {/* Conteúdo centralizado */}
       <div className="home-content">
-
-        {clienteData && (
-          <div style={{ fontSize: "14px", color: "#666", textAlign: "center" }}>
-            <div>Idade: {clienteData.idade || "-"} anos</div>
-            <div>Altura: {clienteData.altura || "-"} cm</div>
-            <div>Peso: {clienteData.peso || "-"} kg</div>
-            <div>Sexo: {clienteData.sexo || "-"}</div>
-          </div>
-        )}
 
         <div className="cards-column">
         <div className="card">

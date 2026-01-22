@@ -5,6 +5,8 @@
   background: #fff;
   font-family: "Poppins", sans-serif;
   width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Limite de largura para web */
@@ -19,14 +21,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .extrato-header .icon-btn {
   color: #000;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  min-width: 40px;
+  padding: 8px;
 }
 
 .extrato-header .icon-btn .material-symbols-rounded {
@@ -35,19 +42,61 @@
 
 .extrato-filter {
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 20px;
   background: linear-gradient(135deg, #D70C1C, #b91c1c);
   color: #fff;
   box-shadow: 0 12px 30px rgba(12, 80, 141, 0.25);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .extrato-filter {
+    padding: 14px;
+  }
 }
 
 .extrato-filter-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
+}
+
+.extrato-filter-header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.extrato-filter-header > div:first-child strong {
+  display: block;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  .extrato-filter-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .extrato-filter-header > div:first-child {
+    width: 100%;
+  }
+  
+  .extrato-filter-control {
+    width: 100%;
+    min-width: 100%;
+  }
+  
+  .extrato-filter-control input[type="month"] {
+    flex: 1;
+    width: 100%;
+  }
 }
 
 .extrato-filter .extrato-label {
@@ -68,6 +117,11 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  width: fit-content;
+  min-width: 180px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .extrato-filter-control span {
@@ -78,10 +132,18 @@
   border: none;
   background: transparent;
   font-family: "Poppins", sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   color: #fff;
   outline: none;
-  min-width: 150px;
+  min-width: 0;
+  width: auto;
+  flex: 0 1 auto;
+}
+
+@media (max-width: 480px) {
+  .extrato-filter-control input[type="month"] {
+    font-size: 16px;
+  }
 }
 
 .extrato-filter-control input[type="month"]::-webkit-calendar-picker-indicator {
@@ -102,19 +164,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .extrato-header-text h1 {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
   color: #000;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .extrato-header-text p {
   margin: 4px 0 0 0;
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 360px) {
+  .extrato-header-text h1 {
+    font-size: 18px;
+  }
+  
+  .extrato-header-text p {
+    font-size: 11px;
+  }
 }
 
 .extrato-list {
@@ -129,6 +207,9 @@
   padding: 16px;
   background: #f8fafc;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .extrato-card-header {
@@ -138,6 +219,21 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
+}
+
+.extrato-card-header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.extrato-card-header h2 {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.extrato-mensalidade {
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .extrato-label {
@@ -150,9 +246,16 @@
 }
 
 .extrato-card-header h2 {
-  font-size: 18px;
+  font-size: 16px;
   margin: 0;
   color: #0f172a;
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .extrato-card-header h2 {
+    font-size: 15px;
+  }
 }
 
 .extrato-mensalidade strong {
@@ -210,11 +313,13 @@
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 20px;
-  margin: 20px 12px;
+  padding: 16px;
+  margin: 20px 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .extrato-resumo-item {
@@ -223,6 +328,20 @@
   align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.extrato-resumo-label {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.extrato-resumo-item strong {
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .extrato-resumo-item:last-child {
@@ -242,8 +361,8 @@
 }
 
 .btn-gerar-extrato {
-  width: calc(100% - 24px);
-  margin: 0 12px 20px 12px;
+  width: 100%;
+  margin: 0 0 20px 0;
   padding: 14px 20px;
   border: none;
   border-radius: 10px;
@@ -258,6 +377,14 @@
   transition: all 0.2s;
   background: #D70C1C;
   color: #fff;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .btn-gerar-extrato {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
 }
 
 .btn-gerar-extrato:hover:not(:disabled) {
