@@ -5,8 +5,9 @@ import ModalAcoesCliente from "../components/ModalAcoesCliente.jsx";
 import "./Clientes.css";
 
 // Firebase
-import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, updateDoc, query, where, orderBy } from "firebase/firestore";
 import { db } from "../firebase.js";
+import { calcularSituacao, buscarUltimoPagamento } from "../utils/pagamento.js";
 
 const Clientes = () => {
   const navigate = useNavigate();
@@ -23,10 +24,38 @@ const Clientes = () => {
       const clientesRef = collection(db, "clientes");
       const snapshot = await getDocs(clientesRef);
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      // Buscar situação de pagamento para cada cliente
+      const data = await Promise.all(
+        snapshot.docs.map(async (docSnapshot) => {
+          const clienteData = {
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          };
+
+          // Buscar último pagamento
+          const ultimoPagamento = await buscarUltimoPagamento(clienteData.id, {
+            getDocs,
+            collection,
+            query,
+            where,
+            orderBy,
+            db,
+          });
+
+          // Calcular situação (plano atual é numérico, mas tratamos como "mensal")
+          const situacao = calcularSituacao(
+            ultimoPagamento,
+            "mensal", // Todos os planos são mensais
+            clienteData.ultimoPagamento || clienteData.dataCadastro
+          );
+
+          return {
+            ...clienteData,
+            ultimoPagamento: ultimoPagamento || clienteData.ultimoPagamento,
+            situacaoPagamento: situacao,
+          };
+        })
+      );
 
       setClientes(data);
     } catch (error) {
@@ -179,6 +208,7 @@ const Clientes = () => {
               <th>Altura</th>
               <th>Peso</th>
               <th>Status</th>
+              <th>Situação</th>
               <th className="acoes-header">Ações</th>
             </tr>
           </thead>
@@ -186,7 +216,7 @@ const Clientes = () => {
             {loading ? (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8"
                   style={{ textAlign: "center", padding: "20px" }}
                 >
                   Carregando clientes...
@@ -195,7 +225,7 @@ const Clientes = () => {
             ) : clients.length === 0 ? (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8"
                   style={{ textAlign: "center", padding: "20px" }}
                 >
                   Nenhum cliente encontrado
@@ -221,6 +251,11 @@ const Clientes = () => {
                     <td>
                       <span className={`status-badge ${isInativo ? "status-inativo" : "status-ativo"}`}>
                         {isInativo ? "Inativo" : "Ativo"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`situacao-badge ${c.situacaoPagamento === "ATRASADO" ? "situacao-atrasado" : "situacao-em-dia"}`}>
+                        {c.situacaoPagamento || "EM DIA"}
                       </span>
                     </td>
                     <td>

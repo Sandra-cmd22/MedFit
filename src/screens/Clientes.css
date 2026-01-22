@@ -5,6 +5,15 @@
 	padding-bottom: 80px; /* espaço para a bottom nav */
 	background: #fff;
 	font-family: 'Poppins', sans-serif;
+	width: 100%;
+}
+
+/* Limite de largura para web */
+@media (min-width: 768px) {
+	.clientes-container {
+		max-width: 600px;
+		margin: 0 auto;
+	}
 }
 
 .clientes-header {
@@ -20,12 +29,22 @@
 	padding: 6px;
 	cursor: pointer;
 	border-radius: 8px;
+	color: #000;
+	display: flex;
+	align-items: center;
+}
+
+.icon-btn .material-symbols-rounded {
+	color: #000;
 }
 
 .clientes-title {
 	font-size: 24px;
 	font-weight: 600;
 	margin: 0;
+	color: #000;
+	flex: 1;
+	text-align: center;
 }
 
 .search-label {
@@ -46,7 +65,7 @@
 }
 
 .search-icon {
-	color: #0C518D;
+	color: #D70C1C;
 }
 
 .search-input {
@@ -96,7 +115,7 @@
 
 .name-pill {
 	background: #E3EFF9;
-	color: #0C518D;
+	color: #D70C1C;
 	border: none;
 	border-radius: 999px;
 	padding: 6px 12px;

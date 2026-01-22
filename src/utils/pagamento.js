@@ -90,9 +90,36 @@ export async function buscarUltimoPagamento(clienteId, { getDocs, collection, qu
 
     // Pegar o primeiro documento (mais recente)
     const ultimoPagamentoDoc = snapshot.docs[0].data();
-    const dataPagamento = ultimoPagamentoDoc.dataPagamento 
-      ? new Date(ultimoPagamentoDoc.dataPagamento)
-      : (ultimoPagamentoDoc.dataCriacao ? new Date(ultimoPagamentoDoc.dataCriacao) : null);
+    
+    // Converter dataPagamento corretamente (pode ser Timestamp do Firestore)
+    let dataPagamento = null;
+    
+    if (ultimoPagamentoDoc.dataPagamento) {
+      // Se for Timestamp do Firestore (tem método toDate)
+      if (ultimoPagamentoDoc.dataPagamento.toDate && typeof ultimoPagamentoDoc.dataPagamento.toDate === 'function') {
+        dataPagamento = ultimoPagamentoDoc.dataPagamento.toDate();
+      }
+      // Se for Timestamp com seconds
+      else if (ultimoPagamentoDoc.dataPagamento.seconds) {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento.seconds * 1000);
+      }
+      // Se for Timestamp com _seconds (formato antigo)
+      else if (ultimoPagamentoDoc.dataPagamento._seconds) {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento._seconds * 1000);
+      }
+      // Se for string ou Date
+      else {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento);
+      }
+    }
+    // Fallback para dataCriacao se dataPagamento não existir
+    else if (ultimoPagamentoDoc.dataCriacao) {
+      if (ultimoPagamentoDoc.dataCriacao.toDate && typeof ultimoPagamentoDoc.dataCriacao.toDate === 'function') {
+        dataPagamento = ultimoPagamentoDoc.dataCriacao.toDate();
+      } else {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataCriacao);
+      }
+    }
 
     return dataPagamento;
   } catch (error) {

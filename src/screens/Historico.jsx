@@ -615,7 +615,7 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
               <button
                 onClick={() => setMostrarTodasAvaliacoes(!mostrarTodasAvaliacoes)}
                 style={{
-                  background: '#0c4a6e',
+                  background: '#282828',
                   border: 'none',
                   borderRadius: '8px',
                   padding: '10px 18px',
@@ -630,12 +630,12 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                   boxShadow: '0 2px 8px rgba(12, 74, 110, 0.2)'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.background = '#0a3d5a';
+                  e.target.style.background = '#1a1a1a';
                   e.target.style.transform = 'translateY(-1px)';
                   e.target.style.boxShadow = '0 4px 12px rgba(12, 74, 110, 0.3)';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = '#0c4a6e';
+                  e.target.style.background = '#282828';
                   e.target.style.transform = 'translateY(0)';
                   e.target.style.boxShadow = '0 2px 8px rgba(12, 74, 110, 0.2)';
                 }}
@@ -679,7 +679,7 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                     style={{
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      border: isExpandida ? '2px solid #0c4a6e' : '1px solid #e5e7eb'
+                      border: isExpandida ? '2px solid #D70C1C' : '1px solid #e5e7eb'
                     }}
                     onClick={() => setAvaliacaoSelecionada(isExpandida ? null : avaliacao.id)}
                   >
@@ -728,7 +728,7 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                                 border: '1px solid #e5e7eb'
                               }}>
                                 <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>{nomeMedida}</div>
-                                <div style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e' }}>{valor} cm</div>
+                                <div style={{ fontSize: '16px', fontWeight: '600', color: '#D70C1C' }}>{valor} cm</div>
                               </div>
                             );
                           })}
@@ -788,11 +788,11 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                     style={{
                       marginTop: '8px',
                       background: 'transparent',
-                      border: '1px solid #0c4a6e',
+                      border: '1px solid #D70C1C',
                       borderRadius: '6px',
                       padding: '6px 12px',
                       fontSize: '12px',
-                      color: '#0c4a6e',
+                      color: '#D70C1C',
                       cursor: 'pointer',
                       fontWeight: '600'
                     }}

@@ -15,6 +15,16 @@
 	overflow: hidden;
 }
 
+/* Limite de largura para web */
+@media (min-width: 768px) {
+	.bottom-nav {
+		left: 50%;
+		transform: translateX(-50%);
+		max-width: 600px;
+		width: 100%;
+	}
+}
+
 .nav-item {
 	flex: 1;
 	display: flex;
@@ -31,7 +41,7 @@
 }
 
 .nav-item.active {
-	color: #0C518D;
+	color: #D70C1C;
 }
 
 .nav-icon {

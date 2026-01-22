@@ -194,26 +194,32 @@ const Home = () => {
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: "12px",
+            gap: "8px",
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
           <h1 className="home-title">{userName}</h1>
           {updating && (
             <div
+              className="updating-indicator"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                fontSize: "12px",
-                color: "#0C518D",
+                gap: "6px",
+                fontSize: "11px",
+                color: "#D70C1C",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span
                 className="material-symbols-rounded"
-                style={{ fontSize: "16px", animation: "spin 1s linear infinite" }}
+                style={{ fontSize: "14px", animation: "spin 1s linear infinite" }}
               >
                 refresh
               </span>
-              Atualizando...
+              <span className="updating-text">Atualizando...</span>
             </div>
           )}
         </div>
@@ -234,7 +240,7 @@ const Home = () => {
         <div className="cards-column">
         <div className="card">
           <div className="card-header">IMC</div>
-          <div className="card-value" style={{ color: "#0C518D" }}>
+          <div className="card-value" style={{ color: "#000" }}>
             {imcAtual ?? "-"}
           </div>
           {bmiCategory && (
@@ -249,7 +255,7 @@ const Home = () => {
 
         <div className="card">
           <div className="card-header">RCQ</div>
-          <div className="card-value" style={{ color: "#0C518D" }}>
+          <div className="card-value" style={{ color: "#000" }}>
             {rcqAtual ?? "-"}
           </div>
           {rcqCategory && (
@@ -281,14 +287,14 @@ const Home = () => {
         Adicionar nova Avaliação
         </button>
 
-        <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+        <div style={{ display: "flex", gap: "8px", marginTop: "16px", width: "100%", boxSizing: "border-box" }}>
         <button
           className="secondary-btn"
           type="button"
           onClick={() => {
             navigate("/historico", { state: { clienteData, userName } });
           }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
         >
           Ver Histórico completo
         </button>
@@ -307,18 +313,21 @@ const Home = () => {
           }}
           disabled={updating}
           style={{
-            flex: "0 0 auto",
-            width: "auto",
-            padding: "0 16px",
+            flexShrink: 0,
+            width: "52px",
+            minWidth: "52px",
+            padding: "0",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
+            justifyContent: "center",
+            color: "#000",
+            borderColor: "#000",
           }}
           title="Atualizar dados"
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: "18px" }}
+            style={{ fontSize: "20px", color: "#000" }}
           >
             refresh
           </span>

@@ -94,7 +94,7 @@ const PWAInstaller = () => {
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: '#0C518D',
+          backgroundColor: '#D70C1C',
           color: 'white',
           padding: '12px 16px',
           display: 'flex',
@@ -114,7 +114,7 @@ const PWAInstaller = () => {
               onClick={handleInstallClick}
               style={{
                 backgroundColor: 'white',
-                color: '#0C518D',
+                color: '#D70C1C',
                 border: 'none',
                 padding: '8px 16px',
                 borderRadius: '4px',

@@ -27,6 +27,8 @@
     "date-fns": "^4.1.0",
     "express": "^5.1.0",
     "firebase": "^12.2.1",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "react": "^19.1.1",
     "react-chartjs-2": "^5.2.0",
     "react-datepicker": "^8.7.0",
@@ -37,6 +39,7 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@babel/plugin-bugfix-firefox-class-in-computed-class-key": "^7.28.5",
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",

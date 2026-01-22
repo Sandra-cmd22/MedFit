@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Splash.css";
 import splashImg from "../assets/imagem.png";
+import logoAdrenalina from "../assets/LOGO.ADRENALINA.svg";
 
 const PASSWORD = "adelina";
 
@@ -39,7 +40,7 @@ const Splash = () => {
   return (
     <div className="splash-container">
       <div className="splash-logo">
-        <span className="logo-text">MedFit</span>
+        <img src={logoAdrenalina} alt="Adrenalina" className="logo-img" />
       </div>
       <img src={splashImg} alt="MedFit" className="splash-img" />
 

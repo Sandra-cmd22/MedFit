@@ -1,5 +1,15 @@
 .historico-container {
     min-height: 100vh;
+    width: 100%;
+}
+
+/* Limite de largura para web */
+@media (min-width: 768px) {
+    .historico-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
     background-color: #f8f9fa;
     padding-bottom: 80px;
 }
@@ -19,10 +29,20 @@
 .historico-title {
     font-size: 20px;
     font-weight: 600;
-    color: #333;
+    color: #000;
     margin: 0;
     flex: 1;
     text-align: center;
+}
+
+.historico-header .material-symbols-rounded {
+    color: #000;
+}
+
+.historico-header button {
+    color: #000;
+    display: flex;
+    align-items: center;
 }
 
 .icon-btn {
@@ -86,7 +106,7 @@
     color: #333;
     font-size: 18px;
     font-weight: 600;
-    border-bottom: 2px solid #0C518D;
+    border-bottom: 2px solid #D70C1C;
     padding-bottom: 8px;
     display: flex;
     align-items: center;
@@ -95,7 +115,7 @@
 
 .section h3 .material-symbols-rounded {
     font-size: 20px;
-    color: #0C518D;
+    color: #D70C1C;
 }
 
 .info-grid {
@@ -141,7 +161,7 @@
     padding: 8px 12px;
     background: #f8f9fa;
     border-radius: 8px;
-    border-left: 4px solid #0C518D;
+    border-left: 4px solid #D70C1C;
 }
 
 .medida-item .label {
@@ -152,7 +172,7 @@
 
 .medida-item .value {
     font-weight: 600;
-    color: #0C518D;
+    color: #D70C1C;
     font-size: 14px;
 }
 
@@ -246,7 +266,7 @@
     background: #f8f9fa;
     border-radius: 8px;
     padding: 12px;
-    border-left: 4px solid #0C518D;
+    border-left: 4px solid #D70C1C;
 }
 
 .avaliacao-header {
@@ -290,7 +310,7 @@
 }
 
 .value-compact {
-    color: #0C518D;
+    color: #D70C1C;
     font-weight: 600;
 }
 
@@ -302,7 +322,7 @@
     padding: 12px;
     background: #f8f9fa;
     border-radius: 8px;
-    border-left: 4px solid #0C518D;
+    border-left: 4px solid #D70C1C;
     min-height: 48px;
     gap: 12px;
 }
@@ -317,7 +337,7 @@
 
 .medida-item .value {
     font-weight: 600;
-    color: #0C518D;
+    color: #D70C1C;
     font-size: 14px;
 }
 

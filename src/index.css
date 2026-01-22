@@ -9,6 +9,16 @@ body, html {
 
 #root {
   min-height: 100vh;
+  width: 100%;
+}
+
+/* Limite de largura para web - não afeta mobile */
+@media (min-width: 768px) {
+  #root {
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Custom DatePicker Styles */
@@ -62,13 +72,13 @@ body, html {
 }
 
 .custom-datepicker .react-datepicker__day--selected {
-  background-color: #0C4A6E !important;
+  background-color: #D70C1C !important;
   color: white !important;
   font-weight: 600 !important;
 }
 
 .custom-datepicker .react-datepicker__day--keyboard-selected {
-  background-color: #0C4A6E !important;
+  background-color: #D70C1C !important;
   color: white !important;
 }
 
@@ -105,7 +115,7 @@ body, html {
 }
 
 .custom-datepicker .react-datepicker__year-option--selected {
-  background-color: #0C4A6E !important;
+  background-color: #D70C1C !important;
   color: white !important;
   font-weight: 600 !important;
 }

@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #0b508d;
+  background: #D70C1C;
   border-radius: 8px;
   border: none;
   padding-top: 12px;
@@ -63,7 +63,7 @@
 .contain {
   display: flex;
   flex-direction: column;
-  background: #0c518d;
+  background: #D70C1C;
 }
 
 .image {
@@ -75,7 +75,7 @@
 .scroll-view {
   height: 846px;
   align-self: stretch;
-  background: #0c518d;
+  background: #D70C1C;
 }
 
 .splash-buttons {
@@ -127,34 +127,64 @@
 }
 
 .primary-btn {
-  background-color: #0c4a6e;
+  background-color: #282828;
   color: #fff;
 }
 
 .secondary-btn {
   background-color: #fff;
-  color: #0c4a6e;
-  border: 2px solid #0c4a6e;
+  color: #D70C1C;
+  border: 2px solid #D70C1C;
 }
 
 .splash-container {
-  background-color: #0c518d;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   min-height: 100vh;
+  width: 100%;
+}
+
+/* Limite de largura para web */
+@media (min-width: 768px) {
+  .splash-container {
+    max-width: 600px;
+    margin: 0 auto;
+  }
 }
 
 .splash-logo {
-  margin-bottom: 16px 0;
+  margin-bottom: 16px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.logo-text {
-  font-family: "Racing Sans One", sans-serif;
-  font-size: 40px;
-  color: #fff;
-  text-align: center;
+.logo-img {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 390px) {
+  .logo-img {
+    max-width: 240px;
+  }
+}
+
+@media (max-width: 320px) {
+  .logo-img {
+    max-width: 200px;
+  }
 }
 
 .splash-img {
@@ -164,7 +194,7 @@
 }
 
 .splash-card {
-  background: #fff;
+  background: #e5e7eb;
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 390px;
@@ -200,7 +230,7 @@
 }
 
 .primary-btn {
-  background-color: #2346a0;
+  background-color: #282828;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -240,7 +270,7 @@
 }
 
 .splash-icon {
-  color: #0c4a6e;
+  color: #D70C1C;
 }
 
 .splash-input {
@@ -255,14 +285,14 @@
 
 .splash-error {
   margin: 0;
-  color: #dc2626;
+  color: #D70C1C;
   font-size: 13px;
 }
 
 .secondary-btn {
   background-color: #fff;
-  color: #2346a0;
-  border: 2px solid #2346a0;
+  color: #D70C1C;
+  border: 2px solid #D70C1C;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 5;

@@ -9,6 +9,24 @@ import BottomNav from "../components/BottomNav.jsx";
 import "./Cadastro.css";
 registerLocale("pt-BR", ptBR);
 
+// Funções auxiliares para formatação
+const formatCPF = (value) => {
+  const numbers = value.replace(/\D/g, "");
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`;
+};
+
+const formatTelefone = (value) => {
+  const numbers = value.replace(/\D/g, "");
+  if (numbers.length <= 10) {
+    if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+  }
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+};
+
 const Cadastro = () => {
   const navigate = useNavigate();
   const [sexo, setSexo] = useState("");
@@ -56,6 +74,16 @@ const Cadastro = () => {
       const idade = (getEl("idade")?.value || "").toString().trim();
       const altura = getNumberWithCommaConversion("altura");
       const peso = getNumber("peso");
+      // Coleta os novos campos de endereço e contato
+      const endereco = (getEl("endereco")?.value || "").toString().trim();
+      const bairro = (getEl("bairro")?.value || "").toString().trim();
+      const numero = (getEl("numero")?.value || "").toString().trim();
+      const cidade = (getEl("cidade")?.value || "").toString().trim();
+      const estado = (getEl("estado")?.value || "").toString().trim().toUpperCase();
+      // Remove formatação de telefone e CPF antes de salvar (apenas números)
+      const telefone = (getEl("telefone")?.value || "").toString().replace(/\D/g, "").trim();
+      const cpf = (getEl("cpf")?.value || "").toString().replace(/\D/g, "").trim();
+      const email = (getEl("email")?.value || "").toString().trim();
 
       if (!nome) {
         alert("Nome é obrigatório");
@@ -94,13 +122,26 @@ const Cadastro = () => {
         peso,
         sexo, // certifique-se que `sexo` está definido no escopo
         plano: Number(plano),
+        // Novos campos de endereço e contato (salva null se vazio)
+        endereco: endereco ? endereco : null,
+        bairro: bairro ? bairro : null,
+        numero: numero ? numero : null,
+        cidade: cidade ? cidade : null,
+        estado: estado ? estado : null,
+        telefone: telefone ? telefone : null,
+        cpf: cpf ? cpf : null,
+        email: email ? email : null,
         medidas,
         status: true, // Por padrão, clientes são criados como ativos
         dataCadastro: new Date().toISOString(),
       };
 
+      // Debug: verificar dados antes de salvar
+      console.log("Dados do cliente a serem salvos:", cliente);
+
       // Salvar no Firestore
-      await addDoc(collection(db, "clientes"), cliente);
+      const docRef = await addDoc(collection(db, "clientes"), cliente);
+      console.log("Cliente salvo com ID:", docRef.id);
 
       // Salvar nome no localStorage para uso posterior
       localStorage.setItem("medfit_user_name", nome);
@@ -175,6 +216,85 @@ const Cadastro = () => {
                 }}
               />
             </div>
+          </div>
+
+          <div className="col full-width">
+            <label className="label" htmlFor="endereco">
+              Endereço
+            </label>
+            <input className="input" type="text" id="endereco" />
+          </div>
+
+          <div className="row">
+            <div className="col">
+              <label className="label" htmlFor="bairro">
+                Bairro
+              </label>
+              <input className="input" type="text" id="bairro" />
+            </div>
+            <div className="col">
+              <label className="label" htmlFor="numero">
+                Número
+              </label>
+              <input className="input" type="text" id="numero" />
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col">
+              <label className="label" htmlFor="cidade">
+                Cidade
+              </label>
+              <input className="input" type="text" id="cidade" />
+            </div>
+            <div className="col">
+              <label className="label" htmlFor="estado">
+                Estado
+              </label>
+              <input className="input" type="text" id="estado" maxLength="2" placeholder="Ex: SP" />
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col">
+              <label className="label" htmlFor="telefone">
+                Telefone
+              </label>
+              <input 
+                className="input" 
+                type="tel" 
+                id="telefone" 
+                placeholder="(00) 00000-0000"
+                maxLength="15"
+                onChange={(e) => {
+                  const formatted = formatTelefone(e.target.value);
+                  e.target.value = formatted;
+                }}
+              />
+            </div>
+            <div className="col">
+              <label className="label" htmlFor="cpf">
+                CPF
+              </label>
+              <input 
+                className="input" 
+                type="text" 
+                id="cpf" 
+                placeholder="000.000.000-00"
+                maxLength="14"
+                onChange={(e) => {
+                  const formatted = formatCPF(e.target.value);
+                  e.target.value = formatted;
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="col full-width">
+            <label className="label" htmlFor="email">
+              Email
+            </label>
+            <input className="input" type="email" id="email" placeholder="exemplo@email.com" />
           </div>
 
           <div className="row">
