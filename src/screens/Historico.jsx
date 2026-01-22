@@ -13,6 +13,8 @@ const Historico = () => {
   );
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
+  const [mostrarTodasAvaliacoes, setMostrarTodasAvaliacoes] = useState(false);
   const userName = location?.state?.userName || "Cliente";
 
   console.log(userName);
@@ -28,30 +30,75 @@ const Historico = () => {
         const qCliente = query(clientesRef, where("nome", "==", userName));
         const clienteSnapshot = await getDocs(qCliente);
 
+        let clienteId = null;
         if (!clienteSnapshot.empty) {
           const clienteDoc = clienteSnapshot.docs[0];
+          clienteId = clienteDoc.id;
           setClienteData(clienteDoc.data());
         }
 
         // --- 2. Buscar avaliações do cliente ---
-        // Cria uma query para buscar avaliações do cliente pelo nome na coleção 'avaliacoes'
-        // Ordena por 'evaluationDate' em ordem decrescente (mais recente primeiro)
+        // Tenta buscar por clienteNome primeiro, depois por clienteId como fallback
         const avaliacoesRef = collection(db, "avaliacoes");
-        const qAvaliacoes = query(
-          avaliacoesRef,
-          where("clienteNome", "==", userName),
-          orderBy("evaluationDate", "desc") // Firebase permite ordenar diretamente na query
-        );
-        const avaliacoesSnapshot = await getDocs(qAvaliacoes);
+        let avaliacoesCliente = [];
+        
+        try {
+          // Tentativa 1: Buscar por clienteNome
+          const qAvaliacoesPorNome = query(
+            avaliacoesRef,
+            where("clienteNome", "==", userName),
+            orderBy("evaluationDate", "desc")
+          );
+          const avaliacoesSnapshotPorNome = await getDocs(qAvaliacoesPorNome);
+          avaliacoesCliente = avaliacoesSnapshotPorNome.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          console.log("📊 Avaliações encontradas por nome:", avaliacoesCliente.length);
+        } catch (error) {
+          console.warn("⚠️ Erro ao buscar por nome, tentando por ID:", error);
+          
+          // Tentativa 2: Buscar por clienteId (se disponível)
+          if (clienteId) {
+            try {
+              const qAvaliacoesPorId = query(
+                avaliacoesRef,
+                where("clienteId", "==", clienteId),
+                orderBy("evaluationDate", "desc")
+              );
+              const avaliacoesSnapshotPorId = await getDocs(qAvaliacoesPorId);
+              avaliacoesCliente = avaliacoesSnapshotPorId.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
+              console.log("📊 Avaliações encontradas por ID:", avaliacoesCliente.length);
+            } catch (error2) {
+              console.warn("⚠️ Erro ao buscar por ID:", error2);
+            }
+          }
+        }
 
-        const avaliacoesCliente = avaliacoesSnapshot.docs.map((doc) => ({
-          id: doc.id, // É útil manter o ID do documento
-          ...doc.data(),
-        }));
+        // Se ainda não encontrou, buscar TODAS as avaliações para debug
+        if (avaliacoesCliente.length === 0) {
+          console.log("🔍 Nenhuma avaliação encontrada. Buscando todas para debug...");
+          const todasAvaliacoesSnapshot = await getDocs(avaliacoesRef);
+          const todasAvaliacoes = todasAvaliacoesSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          console.log("📋 Total de avaliações no banco:", todasAvaliacoes.length);
+          console.log("📋 Exemplo de avaliação:", todasAvaliacoes[0]);
+          console.log("📋 ClienteNome buscado:", userName);
+          console.log("📋 ClienteId buscado:", clienteId);
+          if (todasAvaliacoes.length > 0) {
+            console.log("📋 Nomes de clientes nas avaliações:", todasAvaliacoes.map(a => a.clienteNome || a.clienteId));
+          }
+        }
 
         setAvaliacoes(avaliacoesCliente);
+        console.log("✅ Avaliações carregadas:", avaliacoesCliente.length, avaliacoesCliente);
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("❌ Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -69,6 +116,27 @@ const Historico = () => {
       return dateString.toDate().toLocaleDateString("pt-BR");
     }
     return new Date(dateString).toLocaleDateString("pt-BR");
+  };
+
+  // Funções para formatar telefone e CPF para exibição
+  const formatTelefoneDisplay = (telefone) => {
+    if (!telefone) return "-";
+    const numbers = telefone.replace(/\D/g, "");
+    if (numbers.length === 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    } else if (numbers.length === 11) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    }
+    return telefone;
+  };
+
+  const formatCPFDisplay = (cpf) => {
+    if (!cpf) return "-";
+    const numbers = cpf.replace(/\D/g, "");
+    if (numbers.length === 11) {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+    }
+    return cpf;
   };
 
   const calcularDiferencas = (avaliacaoAtual, avaliacaoAnterior) => {
@@ -177,6 +245,15 @@ const Historico = () => {
         ? (medidas.cintura / medidas.quadril).toFixed(2)
         : "-";
 
+    // Montar informações de contato e endereço
+    const enderecoCompleto = [];
+    if (clienteData.endereco) enderecoCompleto.push(clienteData.endereco);
+    if (clienteData.numero) enderecoCompleto.push(`Nº ${clienteData.numero}`);
+    if (clienteData.bairro) enderecoCompleto.push(clienteData.bairro);
+    if (clienteData.cidade) enderecoCompleto.push(clienteData.cidade);
+    if (clienteData.estado) enderecoCompleto.push(clienteData.estado);
+    const enderecoFormatado = enderecoCompleto.length > 0 ? enderecoCompleto.join(", ") : "-";
+
     const message = `📊 *RELATÓRIO DE AVALIAÇÃO FÍSICA*
   
 👤 *Cliente:* ${clienteData.nome}
@@ -188,7 +265,15 @@ const Historico = () => {
 • Peso: ${clienteData.peso || "-"} kg
 • Sexo: ${clienteData.sexo || "-"}
 
-📊 *ÍNDICES CORPORAIS:*
+${(clienteData.endereco || clienteData.bairro || clienteData.numero || 
+   clienteData.cidade || clienteData.estado || clienteData.telefone || 
+   clienteData.cpf || clienteData.email) ? `📍 *CONTATO E ENDEREÇO:*
+${clienteData.endereco || clienteData.bairro || clienteData.numero || clienteData.cidade || clienteData.estado ? `• Endereço: ${enderecoFormatado}` : ""}
+${clienteData.telefone ? `• Telefone: ${formatTelefoneDisplay(clienteData.telefone)}` : ""}
+${clienteData.cpf ? `• CPF: ${formatCPFDisplay(clienteData.cpf)}` : ""}
+${clienteData.email ? `• Email: ${clienteData.email}` : ""}
+
+` : ""}📊 *ÍNDICES CORPORAIS:*
 • IMC: ${imc}
 • RCQ: ${rcq}
 
@@ -305,6 +390,67 @@ const Historico = () => {
             </div>
           </div>
         </div>
+
+        {(clienteData.endereco || clienteData.bairro || clienteData.numero || 
+          clienteData.cidade || clienteData.estado || clienteData.telefone || 
+          clienteData.cpf || clienteData.email) && (
+          <div className="section">
+            <h3>
+              <span className="material-symbols-rounded">contact_mail</span>{" "}
+              Contato e Endereço
+            </h3>
+            <div className="info-grid">
+              {clienteData.endereco && (
+                <div className="info-item">
+                  <span className="label">Endereço:</span>
+                  <span className="value">{clienteData.endereco}</span>
+                </div>
+              )}
+              {clienteData.bairro && (
+                <div className="info-item">
+                  <span className="label">Bairro:</span>
+                  <span className="value">{clienteData.bairro}</span>
+                </div>
+              )}
+              {clienteData.numero && (
+                <div className="info-item">
+                  <span className="label">Número:</span>
+                  <span className="value">{clienteData.numero}</span>
+                </div>
+              )}
+              {clienteData.cidade && (
+                <div className="info-item">
+                  <span className="label">Cidade:</span>
+                  <span className="value">{clienteData.cidade}</span>
+                </div>
+              )}
+              {clienteData.estado && (
+                <div className="info-item">
+                  <span className="label">Estado:</span>
+                  <span className="value">{clienteData.estado}</span>
+                </div>
+              )}
+              {clienteData.telefone && (
+                <div className="info-item">
+                  <span className="label">Telefone:</span>
+                  <span className="value">{formatTelefoneDisplay(clienteData.telefone)}</span>
+                </div>
+              )}
+              {clienteData.cpf && (
+                <div className="info-item">
+                  <span className="label">CPF:</span>
+                  <span className="value">{formatCPFDisplay(clienteData.cpf)}</span>
+                </div>
+              )}
+              {clienteData.email && (
+                <div className="info-item">
+                  <span className="label">Email:</span>
+                  <span className="value">{clienteData.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="section">
           <h3>
@@ -459,43 +605,205 @@ const Historico = () => {
           </div>
         </div>
 
-        {avaliacoes.length > 0 && (
-          <div className="section">
+        <div className="section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <h3>
               <span className="material-symbols-rounded">history</span>{" "}
               Histórico de Avaliações
             </h3>
-            <div className="avaliacoes-list">
-              {avaliacoes.map((avaliacao, index) => (
-                <div key={avaliacao.id} className="avaliacao-item">
-                  <div className="avaliacao-header">
-                    <span className="avaliacao-date">
-                      {formatDate(
-                        avaliacao.dataAvaliacao || avaliacao.evaluationDate
-                      )}
-                    </span>
-                    {index === 0 && <span className="badge-atual">Atual</span>}
-                  </div>
-                  <div className="avaliacao-medidas">
-                    {Object.entries(avaliacao.medidas || {})
-                      .slice(0, 4)
-                      .map(([medida, valor]) => (
-                        <div key={medida} className="medida-compact">
-                          <span className="label-compact">
-                            {medida
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                            :
-                          </span>
-                          <span className="value-compact">{valor} cm</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {avaliacoes.length > 0 && (
+              <button
+                onClick={() => setMostrarTodasAvaliacoes(!mostrarTodasAvaliacoes)}
+                style={{
+                  background: '#0c4a6e',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 18px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(12, 74, 110, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#0a3d5a';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(12, 74, 110, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#0c4a6e';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(12, 74, 110, 0.2)';
+                }}
+              >
+                <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>
+                  {mostrarTodasAvaliacoes ? 'expand_less' : 'expand_more'}
+                </span>
+                {mostrarTodasAvaliacoes ? 'Ocultar' : 'Ver'} Avaliações Antigas ({avaliacoes.length})
+              </button>
+            )}
           </div>
-        )}
+          {avaliacoes.length === 0 && !loading && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px 20px', 
+              color: '#999',
+              fontSize: '14px'
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '12px', opacity: 0.5 }}>
+                assessment
+              </span>
+              Nenhuma avaliação encontrada
+            </div>
+          )}
+          {avaliacoes.length > 0 && (
+            <div className="avaliacoes-list">
+              {avaliacoes.map((avaliacao, index) => {
+                // Se não está expandido, mostrar apenas as 3 mais recentes
+                if (!mostrarTodasAvaliacoes && index >= 3) {
+                  return null;
+                }
+
+                const isExpandida = avaliacaoSelecionada === avaliacao.id;
+                const medidasComValor = Object.entries(avaliacao.medidas || {})
+                  .filter(([_, valor]) => valor && valor !== "" && valor !== "0");
+
+                return (
+                  <div 
+                    key={avaliacao.id} 
+                    className="avaliacao-item"
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      border: isExpandida ? '2px solid #0c4a6e' : '1px solid #e5e7eb'
+                    }}
+                    onClick={() => setAvaliacaoSelecionada(isExpandida ? null : avaliacao.id)}
+                  >
+                    <div className="avaliacao-header">
+                      <span className="avaliacao-date">
+                        {formatDate(
+                          avaliacao.dataAvaliacao || avaliacao.evaluationDate
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {index === 0 && <span className="badge-atual">Atual</span>}
+                        <span className="material-symbols-rounded" style={{ 
+                          fontSize: '18px', 
+                          color: '#666',
+                          transform: isExpandida ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}>
+                          expand_more
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {isExpandida ? (
+                      // Visualização expandida com todas as medidas
+                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                        {(avaliacao.idade || avaliacao.peso) && (
+                          <div style={{ marginBottom: '12px', padding: '8px', background: '#f8f9fa', borderRadius: '8px' }}>
+                            {avaliacao.idade && <div style={{ fontSize: '13px', color: '#666' }}>Idade: <strong>{avaliacao.idade} anos</strong></div>}
+                            {avaliacao.peso && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Peso: <strong>{avaliacao.peso} kg</strong></div>}
+                          </div>
+                        )}
+                        <div className="medidas-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                          {medidasComValor.map(([medida, valor]) => {
+                            const nomeMedida = medida
+                              .replace(/([A-Z])/g, " $1")
+                              .trim()
+                              .split(' ')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                              .join(' ');
+                            
+                            return (
+                              <div key={medida} style={{
+                                padding: '8px',
+                                background: '#f8f9fa',
+                                borderRadius: '6px',
+                                border: '1px solid #e5e7eb'
+                              }}>
+                                <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>{nomeMedida}</div>
+                                <div style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e' }}>{valor} cm</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {medidasComValor.length === 0 && (
+                          <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px' }}>
+                            Nenhuma medida registrada nesta avaliação
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Visualização compacta (apenas algumas medidas)
+                      <div className="avaliacao-medidas">
+                        {medidasComValor.slice(0, 4).map(([medida, valor]) => (
+                          <div key={medida} className="medida-compact">
+                            <span className="label-compact">
+                              {medida
+                                .replace(/([A-Z])/g, " $1")
+                                .replace(/^./, (str) => str.toUpperCase())
+                                .split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                .join(' ')}
+                              :
+                            </span>
+                            <span className="value-compact">{valor} cm</span>
+                          </div>
+                        ))}
+                        {medidasComValor.length > 4 && (
+                          <div style={{ fontSize: '11px', color: '#666', marginTop: '4px', fontStyle: 'italic' }}>
+                            +{medidasComValor.length - 4} medidas (clique para ver todas)
+                          </div>
+                        )}
+                        {medidasComValor.length === 0 && (
+                          <div style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
+                            Clique para ver detalhes
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {!mostrarTodasAvaliacoes && avaliacoes.length > 3 && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '16px', 
+                  color: '#666', 
+                  fontSize: '13px',
+                  fontStyle: 'italic',
+                  borderTop: '1px solid #e5e7eb',
+                  marginTop: '12px'
+                }}>
+                  ... e mais {avaliacoes.length - 3} avaliações anteriores
+                  <br />
+                  <button
+                    onClick={() => setMostrarTodasAvaliacoes(true)}
+                    style={{
+                      marginTop: '8px',
+                      background: 'transparent',
+                      border: '1px solid #0c4a6e',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      color: '#0c4a6e',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Ver todas as avaliações
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="share-section">
           <button className="whatsapp-btn" onClick={shareToWhatsApp}>
