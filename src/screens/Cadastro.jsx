@@ -141,7 +141,25 @@ const Cadastro = () => {
 
       // Salvar no Firestore
       const docRef = await addDoc(collection(db, "clientes"), cliente);
-      console.log("Cliente salvo com ID:", docRef.id);
+      const clienteId = docRef.id;
+      console.log("Cliente salvo com ID:", clienteId);
+
+      // Criar a primeira avaliação na coleção 'avaliacoes' (avaliação inicial do cadastro)
+      const dataAtual = new Date();
+      const avaliacaoInicial = {
+        clienteId: clienteId,
+        clienteNome: nome,
+        startDate: dataAtual.toISOString(),
+        endDate: dataAtual.toISOString(),
+        medidas: medidas,
+        evaluationDate: dataAtual.toISOString(),
+        idade: idade,
+        peso: peso,
+      };
+
+      const avaliacoesRef = collection(db, "avaliacoes");
+      await addDoc(avaliacoesRef, avaliacaoInicial);
+      console.log("Avaliação inicial criada para o cadastro");
 
       // Salvar nome no localStorage para uso posterior
       localStorage.setItem("medfit_user_name", nome);

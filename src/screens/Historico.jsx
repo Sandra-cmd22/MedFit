@@ -14,7 +14,6 @@ const Historico = () => {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
-  const [mostrarTodasAvaliacoes, setMostrarTodasAvaliacoes] = useState(false);
   const userName = location?.state?.userName || "Cliente";
 
   console.log(userName);
@@ -38,45 +37,65 @@ const Historico = () => {
         }
 
         // --- 2. Buscar avaliações do cliente ---
-        // Tenta buscar por clienteNome primeiro, depois por clienteId como fallback
+        // Busca por clienteNome E clienteId para garantir que encontre todas as avaliações
         const avaliacoesRef = collection(db, "avaliacoes");
         let avaliacoesCliente = [];
+        const avaliacoesIds = new Set(); // Para evitar duplicatas
         
+        // Buscar por clienteNome
         try {
-          // Tentativa 1: Buscar por clienteNome
           const qAvaliacoesPorNome = query(
             avaliacoesRef,
-            where("clienteNome", "==", userName),
-            orderBy("evaluationDate", "desc")
+            where("clienteNome", "==", userName)
           );
           const avaliacoesSnapshotPorNome = await getDocs(qAvaliacoesPorNome);
-          avaliacoesCliente = avaliacoesSnapshotPorNome.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          console.log("📊 Avaliações encontradas por nome:", avaliacoesCliente.length);
-        } catch (error) {
-          console.warn("⚠️ Erro ao buscar por nome, tentando por ID:", error);
-          
-          // Tentativa 2: Buscar por clienteId (se disponível)
-          if (clienteId) {
-            try {
-              const qAvaliacoesPorId = query(
-                avaliacoesRef,
-                where("clienteId", "==", clienteId),
-                orderBy("evaluationDate", "desc")
-              );
-              const avaliacoesSnapshotPorId = await getDocs(qAvaliacoesPorId);
-              avaliacoesCliente = avaliacoesSnapshotPorId.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-              }));
-              console.log("📊 Avaliações encontradas por ID:", avaliacoesCliente.length);
-            } catch (error2) {
-              console.warn("⚠️ Erro ao buscar por ID:", error2);
+          avaliacoesSnapshotPorNome.docs.forEach((doc) => {
+            const avaliacao = {
+              id: doc.id,
+              ...doc.data(),
+            };
+            if (!avaliacoesIds.has(doc.id)) {
+              avaliacoesCliente.push(avaliacao);
+              avaliacoesIds.add(doc.id);
             }
+          });
+          console.log("📊 Avaliações encontradas por nome:", avaliacoesSnapshotPorNome.docs.length);
+        } catch (error) {
+          console.warn("⚠️ Erro ao buscar por nome:", error);
+        }
+        
+        // Buscar por clienteId (se disponível) e adicionar as que ainda não foram encontradas
+        if (clienteId) {
+          try {
+            const qAvaliacoesPorId = query(
+              avaliacoesRef,
+              where("clienteId", "==", clienteId)
+            );
+            const avaliacoesSnapshotPorId = await getDocs(qAvaliacoesPorId);
+            avaliacoesSnapshotPorId.docs.forEach((doc) => {
+              if (!avaliacoesIds.has(doc.id)) {
+                const avaliacao = {
+                  id: doc.id,
+                  ...doc.data(),
+                };
+                avaliacoesCliente.push(avaliacao);
+                avaliacoesIds.add(doc.id);
+              }
+            });
+            console.log("📊 Avaliações encontradas por ID:", avaliacoesSnapshotPorId.docs.length);
+          } catch (error2) {
+            console.warn("⚠️ Erro ao buscar por ID:", error2);
           }
         }
+        
+        // Ordenar todas as avaliações por data (mais recente primeiro)
+        avaliacoesCliente.sort((a, b) => {
+          const dateA = a.evaluationDate || a.startDate || a.endDate || "";
+          const dateB = b.evaluationDate || b.startDate || b.endDate || "";
+          return new Date(dateB) - new Date(dateA);
+        });
+        
+        console.log("📊 Total de avaliações encontradas (sem duplicatas):", avaliacoesCliente.length);
 
         // Se ainda não encontrou, buscar TODAS as avaliações para debug
         if (avaliacoesCliente.length === 0) {
@@ -95,28 +114,46 @@ const Historico = () => {
           }
         }
 
+        // Log detalhado das avaliações encontradas
+        console.log("=".repeat(60));
+        console.log("📊 RESUMO DAS AVALIAÇÕES ENCONTRADAS");
+        console.log("=".repeat(60));
+        console.log(`Total: ${avaliacoesCliente.length} avaliações`);
+        avaliacoesCliente.forEach((av, idx) => {
+          console.log(`\n${idx + 1}. Avaliação ID: ${av.id}`);
+          console.log(`   Data: ${av.evaluationDate || av.startDate || av.endDate || "N/A"}`);
+          console.log(`   ClienteNome: ${av.clienteNome || "N/A"}`);
+          console.log(`   ClienteId: ${av.clienteId || "N/A"}`);
+          console.log(`   Medidas: ${Object.keys(av.medidas || {}).length} medidas`);
+        });
+        console.log("=".repeat(60));
+
         setAvaliacoes(avaliacoesCliente);
-        console.log("✅ Avaliações carregadas:", avaliacoesCliente.length, avaliacoesCliente);
+        console.log("✅ Avaliações carregadas no estado:", avaliacoesCliente.length);
       } catch (error) {
-        console.error("❌ Erro ao carregar dados:", error);
+        console.error("Erro ao buscar dados:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [userName]); // Dependência ajustada para 'userName'
+  }, [userName]);
 
-  // Restante do código (formatDate, calcularDiferencas, renderizarValorComComparacao, shareToWhatsApp)
-  // ... (Essas funções não precisam de alteração, pois trabalham com os dados já obtidos)
+  // Função auxiliar para formatar data
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     // Firestore pode retornar timestamps, converta para Date
     if (dateString.toDate) {
       return dateString.toDate().toLocaleDateString("pt-BR");
     }
-    return new Date(dateString).toLocaleDateString("pt-BR");
+    try {
+      return new Date(dateString).toLocaleDateString("pt-BR");
+    } catch (error) {
+      return "-";
+    }
   };
+
 
   // Funções para formatar telefone e CPF para exibição
   const formatTelefoneDisplay = (telefone) => {
@@ -236,10 +273,13 @@ const Historico = () => {
     if (!clienteData) return;
 
     const medidas = clienteData.medidas || {};
-    const imc =
-      clienteData.peso && clienteData.altura
-        ? (clienteData.peso / Math.pow(clienteData.altura / 100, 2)).toFixed(1)
-        : "-";
+    let imc = "-";
+    if (clienteData.peso && clienteData.altura) {
+      // Converter altura de cm para metros se necessário (se altura > 3, assume que está em cm)
+      const alturaEmMetros = clienteData.altura > 3 ? clienteData.altura / 100 : clienteData.altura;
+      const imcCalculado = clienteData.peso / (alturaEmMetros * alturaEmMetros);
+      imc = Number(imcCalculado.toFixed(1));
+    }
     const rcq =
       medidas.cintura && medidas.quadril
         ? (medidas.cintura / medidas.quadril).toFixed(2)
@@ -335,10 +375,13 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
   }
 
   const medidas = clienteData.medidas || {};
-  const imc =
-    clienteData.peso && clienteData.altura
-      ? (clienteData.peso / Math.pow(clienteData.altura / 100, 2)).toFixed(1)
-      : null;
+  let imc = null;
+  if (clienteData.peso && clienteData.altura) {
+    // Converter altura de cm para metros se necessário (se altura > 3, assume que está em cm)
+    const alturaEmMetros = clienteData.altura > 3 ? clienteData.altura / 100 : clienteData.altura;
+    const imcCalculado = clienteData.peso / (alturaEmMetros * alturaEmMetros);
+    imc = Number(imcCalculado.toFixed(1));
+  }
   const rcq =
     medidas.cintura && medidas.quadril
       ? (medidas.cintura / medidas.quadril).toFixed(2)
@@ -472,181 +515,115 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
         <div className="section">
           <h3>
             <span className="material-symbols-rounded">straighten</span> Medidas
-            Corporais
+            Corporais Atuais
           </h3>
-          {avaliacoes.length >= 2 && (
-            <div
-              style={{
-                marginBottom: "16px",
-                padding: "8px 12px",
-                backgroundColor: "#f8f9fa",
-                borderRadius: "8px",
-                fontSize: "12px",
-                color: "#666",
-              }}
+          <div style={{
+            marginBottom: "16px",
+            padding: "8px 12px",
+            backgroundColor: "#e8f5e9",
+            borderRadius: "8px",
+            fontSize: "12px",
+            color: "#2e7d32",
+          }}>
+            <span
+              className="material-symbols-rounded"
+              style={{ fontSize: "16px", marginRight: "4px" }}
             >
-              <span
-                className="material-symbols-rounded"
-                style={{ fontSize: "16px", marginRight: "4px" }}
-              >
-                trending_up
-              </span>
-              Formato:{" "}
-              <span style={{ color: "#4CAF50", fontWeight: "bold" }}>
-                atual
-              </span>{" "}
-              /{" "}
-              <span style={{ color: "#F44336", fontWeight: "bold" }}>
-                anterior
-              </span>
-            </div>
-          )}
+              check_circle
+            </span>
+            Dados atuais do cliente (última avaliação registrada)
+          </div>
           <div className="medidas-grid">
             <div className="medida-item">
               <span className="label">Braço Direito:</span>
-              {renderizarValorComComparacao(
-                "bracoDireito",
-                medidas.bracoDireito
-              )}
+              <span className="value">{medidas.bracoDireito || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Braço Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "bracoEsquerdo",
-                medidas.bracoEsquerdo
-              )}
+              <span className="value">{medidas.bracoEsquerdo || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Braço Força Direito:</span>
-              {renderizarValorComComparacao(
-                "bracoForcaDireito",
-                medidas.bracoForcaDireito
-              )}
+              <span className="value">{medidas.bracoForcaDireito || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Braço Força Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "bracoForcaEsquerdo",
-                medidas.bracoForcaEsquerdo
-              )}
+              <span className="value">{medidas.bracoForcaEsquerdo || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Antebraço Direito:</span>
-              {renderizarValorComComparacao(
-                "antebracoDireito",
-                medidas.antebracoDireito
-              )}
+              <span className="value">{medidas.antebracoDireito || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Antebraço Esquerdo:</span>
-              {renderizarValorComComparacao(
-                "antebracoEsquerdo",
-                medidas.antebracoEsquerdo
-              )}
+              <span className="value">{medidas.antebracoEsquerdo || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Tórax:</span>
-              {renderizarValorComComparacao("torax", medidas.torax)}
+              <span className="value">{medidas.torax || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Cintura:</span>
-              {renderizarValorComComparacao("cintura", medidas.cintura)}
+              <span className="value">{medidas.cintura || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Quadril:</span>
-              {renderizarValorComComparacao("quadril", medidas.quadril)}
+              <span className="value">{medidas.quadril || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Abdômen:</span>
-              {renderizarValorComComparacao("abdomen", medidas.abdomen)}
+              <span className="value">{medidas.abdomen || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Coxa Proximal Direita:</span>
-              {renderizarValorComComparacao(
-                "coxaProximalDireita",
-                medidas.coxaProximalDireita
-              )}
+              <span className="value">{medidas.coxaProximalDireita || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Coxa Proximal Esquerda:</span>
-              {renderizarValorComComparacao(
-                "coxaProximalEsquerda",
-                medidas.coxaProximalEsquerda
-              )}
+              <span className="value">{medidas.coxaProximalEsquerda || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Coxa Distal Direita:</span>
-              {renderizarValorComComparacao(
-                "coxaDistalDireita",
-                medidas.coxaDistalDireita
-              )}
+              <span className="value">{medidas.coxaDistalDireita || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Coxa Distal Esquerda:</span>
-              {renderizarValorComComparacao(
-                "coxaDistalEsquerda",
-                medidas.coxaDistalEsquerda
-              )}
+              <span className="value">{medidas.coxaDistalEsquerda || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Panturrilha Direita:</span>
-              {renderizarValorComComparacao(
-                "panturrilhaDireita",
-                medidas.panturrilhaDireita
-              )}
+              <span className="value">{medidas.panturrilhaDireita || "-"} cm</span>
             </div>
             <div className="medida-item">
               <span className="label">Panturrilha Esquerda:</span>
-              {renderizarValorComComparacao(
-                "panturrilhaEsquerda",
-                medidas.panturrilhaEsquerda
-              )}
+              <span className="value">{medidas.panturrilhaEsquerda || "-"} cm</span>
             </div>
           </div>
         </div>
 
         <div className="section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <h3>
-              <span className="material-symbols-rounded">history</span>{" "}
-              Histórico de Avaliações
-            </h3>
-            {avaliacoes.length > 0 && (
-              <button
-                onClick={() => setMostrarTodasAvaliacoes(!mostrarTodasAvaliacoes)}
-                style={{
-                  background: '#282828',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px 18px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 8px rgba(12, 74, 110, 0.2)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#1a1a1a';
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(12, 74, 110, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = '#282828';
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 2px 8px rgba(12, 74, 110, 0.2)';
-                }}
+          <h3>
+            <span className="material-symbols-rounded">history</span>{" "}
+            Histórico de Avaliações
+          </h3>
+          {avaliacoes.length > 0 && (
+            <div style={{
+              marginBottom: "16px",
+              padding: "8px 12px",
+              backgroundColor: "#fff3cd",
+              borderRadius: "8px",
+              fontSize: "12px",
+              color: "#856404",
+            }}>
+              <span
+                className="material-symbols-rounded"
+                style={{ fontSize: "16px", marginRight: "4px" }}
               >
-                <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>
-                  {mostrarTodasAvaliacoes ? 'expand_less' : 'expand_more'}
-                </span>
-                {mostrarTodasAvaliacoes ? 'Ocultar' : 'Ver'} Avaliações Antigas ({avaliacoes.length})
-              </button>
-            )}
-          </div>
+                info
+              </span>
+              {avaliacoes.length} avaliação(ões) encontrada(s). Ordenadas por data (mais recente primeiro). Clique em cada avaliação para ver os detalhes completos.
+            </div>
+          )}
           {avaliacoes.length === 0 && !loading && (
             <div style={{ 
               textAlign: 'center', 
@@ -663,10 +640,6 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
           {avaliacoes.length > 0 && (
             <div className="avaliacoes-list">
               {avaliacoes.map((avaliacao, index) => {
-                // Se não está expandido, mostrar apenas as 3 mais recentes
-                if (!mostrarTodasAvaliacoes && index >= 3) {
-                  return null;
-                }
 
                 const isExpandida = avaliacaoSelecionada === avaliacao.id;
                 const medidasComValor = Object.entries(avaliacao.medidas || {})
@@ -771,36 +744,6 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                   </div>
                 );
               })}
-              {!mostrarTodasAvaliacoes && avaliacoes.length > 3 && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '16px', 
-                  color: '#666', 
-                  fontSize: '13px',
-                  fontStyle: 'italic',
-                  borderTop: '1px solid #e5e7eb',
-                  marginTop: '12px'
-                }}>
-                  ... e mais {avaliacoes.length - 3} avaliações anteriores
-                  <br />
-                  <button
-                    onClick={() => setMostrarTodasAvaliacoes(true)}
-                    style={{
-                      marginTop: '8px',
-                      background: 'transparent',
-                      border: '1px solid #D70C1C',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      color: '#D70C1C',
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Ver todas as avaliações
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
