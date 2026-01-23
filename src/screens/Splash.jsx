@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Splash.css";
-import splashImg from "../assets/imagem.png";
-import logoAdrenalina from "../assets/LOGO.ADRENALINA.svg";
+import backgroundImg from "../assets/img.jpg";
+import logoRed from "../assets/logo.red.svg";
 
 const PASSWORD = "adelina";
 
@@ -39,10 +39,12 @@ const Splash = () => {
 
   return (
     <div className="splash-container">
-      <div className="splash-logo">
-        <img src={logoAdrenalina} alt="Adrenalina" className="logo-img" />
+      <div className="splash-background">
+        <img src={backgroundImg} alt="Background" className="splash-bg-img" />
       </div>
-      <img src={splashImg} alt="MedFit" className="splash-img" />
+      <div className="splash-logo">
+        <img src={logoRed} alt="Logo" className="logo-img" />
+      </div>
 
       <div className="splash-card">
         <h2 className="splash-title">Bem-vinda(o)!</h2>
