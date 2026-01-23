@@ -473,6 +473,17 @@
   opacity: 0.6;
 }
 
+.btn-marcar-pago-desabilitado {
+  background: #9CA3AF !important;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.btn-marcar-pago-desabilitado:hover {
+  background: #9CA3AF !important;
+  transform: none !important;
+}
+
 .btn-marcar-pago .material-symbols-rounded {
   font-size: 18px;
   color: #ffffff;

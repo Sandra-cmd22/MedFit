@@ -37,12 +37,144 @@ const ExtratoFinanceiro = () => {
     return `${hoje.getFullYear()}-${mes}`;
   });
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [modalPagamentoRecente, setModalPagamentoRecente] = useState(null); // { clienteNome, dataPagamento, valor }
+
+  // Função auxiliar para converter dataPagamento para Date
+  // REGRA: Extrato usa SOMENTE dataPagamento, NÃO usa situação ou vencimento
+  const getDateFromPagamento = (pagamento) => {
+    if (!pagamento.dataPagamento) {
+      console.warn("⚠️ Pagamento sem dataPagamento:", pagamento.id);
+      return null;
+    }
+    
+    // Firebase Timestamp (formato correto)
+    if (pagamento.dataPagamento.toDate && typeof pagamento.dataPagamento.toDate === 'function') {
+      return pagamento.dataPagamento.toDate();
+    }
+    
+    // Timestamp com seconds
+    if (pagamento.dataPagamento.seconds) {
+      return new Date(pagamento.dataPagamento.seconds * 1000);
+    }
+    
+    // Timestamp com _seconds (formato antigo)
+    if (pagamento.dataPagamento._seconds) {
+      return new Date(pagamento.dataPagamento._seconds * 1000);
+    }
+    
+    // String ou Date
+    if (typeof pagamento.dataPagamento === 'string' || pagamento.dataPagamento instanceof Date) {
+      return new Date(pagamento.dataPagamento);
+    }
+    
+    console.warn("⚠️ Formato de data desconhecido:", pagamento.dataPagamento);
+    return null;
+  };
+
+  // Função para verificar se o cliente pagou nos últimos 30 dias
+  const verificarPagamentoUltimos30Dias = async (clienteId) => {
+    try {
+      const ultimoPagamento = await buscarUltimoPagamento(clienteId, {
+        getDocs,
+        collection,
+        query,
+        where,
+        orderBy,
+        db,
+      });
+
+      if (!ultimoPagamento) {
+        return { pagou: false, dataPagamento: null, valor: null };
+      }
+
+      const hoje = new Date();
+      hoje.setHours(23, 59, 59, 999); // Fim do dia de hoje
+      const dataLimite = new Date(hoje);
+      dataLimite.setDate(dataLimite.getDate() - 30);
+      dataLimite.setHours(0, 0, 0, 0); // Início do dia há 30 dias
+
+      // Normalizar a data do último pagamento para comparação
+      const dataPagamentoNormalizada = new Date(ultimoPagamento);
+      dataPagamentoNormalizada.setHours(0, 0, 0, 0);
+
+      // Verificar se o último pagamento foi nos últimos 30 dias (incluindo hoje)
+      const pagouUltimos30Dias = dataPagamentoNormalizada >= dataLimite && dataPagamentoNormalizada <= hoje;
+
+      if (pagouUltimos30Dias) {
+        // Buscar o valor do pagamento
+        const pagamentosRef = collection(db, "pagamentos");
+        const q = query(
+          pagamentosRef,
+          where("clienteId", "==", clienteId),
+          orderBy("dataPagamento", "desc")
+        );
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const ultimoPagamentoDoc = snapshot.docs[0].data();
+          return {
+            pagou: true,
+            dataPagamento: ultimoPagamento,
+            valor: ultimoPagamentoDoc.valor || null,
+          };
+        }
+      }
+
+      return { pagou: false, dataPagamento: null, valor: null };
+    } catch (error) {
+      console.error("Erro ao verificar pagamento dos últimos 30 dias:", error);
+      return { pagou: false, dataPagamento: null, valor: null };
+    }
+  };
 
   const loadClientes = async () => {
     setLoading(true);
     try {
       const clientesRef = collection(db, "clientes");
       const snapshot = await getDocs(clientesRef);
+
+      // Buscar TODOS os pagamentos para verificar quem pagou no mês atual
+      const pagamentosRef = collection(db, "pagamentos");
+      const todosPagamentosSnapshot = await getDocs(pagamentosRef);
+      const todosPagamentos = todosPagamentosSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Extrair ano e mês da competência atual (formato: "2026-01")
+      const [ano, mes] = competencia.split("-").map(Number);
+      const mesSelecionado = new Date(ano, mes - 1, 1);
+      const mesInicioSistema = new Date(
+        DATA_INICIO_SISTEMA.getFullYear(),
+        DATA_INICIO_SISTEMA.getMonth(),
+        DATA_INICIO_SISTEMA.getDate()
+      );
+      const mesmoMesInicio = 
+        mesSelecionado.getFullYear() === mesInicioSistema.getFullYear() &&
+        mesSelecionado.getMonth() === mesInicioSistema.getMonth();
+      const dataInicioFiltro = mesmoMesInicio 
+        ? mesInicioSistema
+        : new Date(ano, mes - 1, 1, 0, 0, 0, 0);
+      const dataFimFiltro = new Date(ano, mes, 0, 23, 59, 59, 999);
+
+      // Filtrar pagamentos do mês atual
+      const pagamentosDoMes = todosPagamentos.filter(p => {
+        const dataPagamento = getDateFromPagamento(p);
+        if (!dataPagamento) return false;
+        return dataPagamento >= dataInicioFiltro && dataPagamento <= dataFimFiltro;
+      });
+
+      // Criar Set com IDs dos clientes que pagaram no mês
+      const clientesQuePagaramNoMes = new Set(
+        pagamentosDoMes.map(p => p.clienteId).filter(Boolean)
+      );
+
+      console.log("=".repeat(60));
+      console.log("🔍 VERIFICANDO PAGAMENTOS DO MÊS PARA DESABILITAR BOTÕES");
+      console.log(`📅 Mês selecionado: ${competencia}`);
+      console.log(`👥 Clientes que pagaram no mês: ${clientesQuePagaramNoMes.size}`);
+      console.log(`📋 IDs: [${Array.from(clientesQuePagaramNoMes).join(", ")}]`);
+      console.log("=".repeat(60));
 
       // Buscar situação de pagamento para cada cliente
       const data = await Promise.all(
@@ -64,16 +196,70 @@ const ExtratoFinanceiro = () => {
           });
 
           // Calcula se está EM DIA ou ATRASADO baseado no último pagamento
+          // REGRA: Se existe pagamento no banco NÃO vencido → EM DIA
+          //        Se NÃO existe pagamento no banco → ATRASADO
+          //        Se existe pagamento mas está vencido → ATRASADO
+          console.log(`👤 Cliente ${clienteData.nome} (${clienteData.id}):`);
+          console.log(`   - Último pagamento recebido: ${ultimoPagamento ? (ultimoPagamento instanceof Date ? ultimoPagamento.toLocaleDateString("pt-BR") : String(ultimoPagamento)) : "NULL/UNDEFINED"}`);
+          console.log(`   - Tipo: ${typeof ultimoPagamento}`);
+          console.log(`   - É Date?: ${ultimoPagamento instanceof Date}`);
+          
           const situacao = calcularSituacao(
             ultimoPagamento,
-            "mensal", // Todos os planos são mensais
-            clienteData.ultimoPagamento || clienteData.dataCadastro
+            "mensal" // Todos os planos são mensais
           );
+          
+          console.log(`   - Situação final: ${situacao}`);
+          console.log("");
+
+          // 🔒 REGRA PRINCIPAL: Verificar se o cliente tem pagamento no mês selecionado
+          // Se tem pagamento no mês, o botão deve estar desabilitado
+          const temPagamentoNoMes = clientesQuePagaramNoMes.has(clienteData.id);
+          
+          // Buscar informações do pagamento do mês (se houver)
+          let dataUltimoPagamento = ultimoPagamento;
+          let valorUltimoPagamento = null;
+          
+          if (temPagamentoNoMes) {
+            const pagamentoDoMes = pagamentosDoMes.find(p => p.clienteId === clienteData.id);
+            if (pagamentoDoMes) {
+              valorUltimoPagamento = pagamentoDoMes.valor || null;
+              const dataPag = getDateFromPagamento(pagamentoDoMes);
+              if (dataPag) {
+                dataUltimoPagamento = dataPag;
+              }
+            }
+          } else if (ultimoPagamento) {
+            // Se não pagou no mês mas tem último pagamento, buscar informações
+            try {
+              const q = query(
+                pagamentosRef,
+                where("clienteId", "==", clienteData.id),
+                orderBy("dataPagamento", "desc")
+              );
+              const snapshotPag = await getDocs(q);
+              
+              if (!snapshotPag.empty) {
+                const ultimoPagamentoDoc = snapshotPag.docs[0].data();
+                valorUltimoPagamento = ultimoPagamentoDoc.valor || null;
+              }
+            } catch (error) {
+              console.error("Erro ao buscar valor do pagamento:", error);
+            }
+          }
+
+          // Debug: log para verificar a lógica
+          if (temPagamentoNoMes) {
+            console.log(`🔒 Cliente ${clienteData.nome}: Botão desabilitado - Tem pagamento no mês ${competencia}`);
+          }
 
           return {
             ...clienteData,
             ultimoPagamento: ultimoPagamento || clienteData.ultimoPagamento,
             situacaoPagamento: situacao,
+            pagouUltimos30Dias: temPagamentoNoMes, // Usar o mesmo nome para manter compatibilidade
+            dataUltimoPagamento: dataUltimoPagamento,
+            valorUltimoPagamento: valorUltimoPagamento,
           };
         })
       );
@@ -89,7 +275,7 @@ const ExtratoFinanceiro = () => {
 
   useEffect(() => {
     loadClientes();
-  }, []);
+  }, [competencia]); // Recarregar quando a competência mudar para atualizar os botões
 
   // Detectar se está no final da página
   useEffect(() => {
@@ -127,38 +313,6 @@ const ExtratoFinanceiro = () => {
   const clientesAtivos = useMemo(() => {
     return clientes.filter((cliente) => cliente.status !== false);
   }, [clientes]);
-
-  // Função auxiliar para converter dataPagamento para Date
-  // REGRA: Extrato usa SOMENTE dataPagamento, NÃO usa situação ou vencimento
-  const getDateFromPagamento = (pagamento) => {
-    if (!pagamento.dataPagamento) {
-      console.warn("⚠️ Pagamento sem dataPagamento:", pagamento.id);
-      return null;
-    }
-    
-    // Firebase Timestamp (formato correto)
-    if (pagamento.dataPagamento.toDate && typeof pagamento.dataPagamento.toDate === 'function') {
-      return pagamento.dataPagamento.toDate();
-    }
-    
-    // Timestamp com seconds
-    if (pagamento.dataPagamento.seconds) {
-      return new Date(pagamento.dataPagamento.seconds * 1000);
-    }
-    
-    // Timestamp com _seconds (formato antigo)
-    if (pagamento.dataPagamento._seconds) {
-      return new Date(pagamento.dataPagamento._seconds * 1000);
-    }
-    
-    // String ou Date
-    if (typeof pagamento.dataPagamento === 'string' || pagamento.dataPagamento instanceof Date) {
-      return new Date(pagamento.dataPagamento);
-    }
-    
-    console.warn("⚠️ Formato de data desconhecido:", pagamento.dataPagamento);
-    return null;
-  };
 
   // Buscar pagamentos do mês selecionado
   const [pagamentosMes, setPagamentosMes] = useState([]);
@@ -582,6 +736,25 @@ const ExtratoFinanceiro = () => {
 
   // Abrir modal de confirmação de pagamento
   const handleAbrirModalPagamento = (cliente) => {
+    // Verificar se o cliente já pagou nos últimos 30 dias
+    if (cliente.pagouUltimos30Dias) {
+      const nomeCompleto = `${cliente.nome}${cliente.sobrenome ? ` ${cliente.sobrenome}` : ""}`;
+      const dataPagamentoFormatada = cliente.dataUltimoPagamento
+        ? cliente.dataUltimoPagamento.toLocaleDateString("pt-BR")
+        : "Data não disponível";
+      const valorFormatado = cliente.valorUltimoPagamento
+        ? formatCurrency(cliente.valorUltimoPagamento)
+        : "Valor não disponível";
+
+      // Mostrar modal de alerta
+      setModalPagamentoRecente({
+        clienteNome: nomeCompleto,
+        dataPagamento: dataPagamentoFormatada,
+        valor: valorFormatado,
+      });
+      return;
+    }
+
     const hoje = new Date();
     const planoNumero = cliente?.plano; // 3 ou 5
     const valor = PLANOS[planoNumero]?.valor || 0;
@@ -838,9 +1011,9 @@ const ExtratoFinanceiro = () => {
 
                   <div className="extrato-acoes-pagamento">
                     <button
-                      className="btn-marcar-pago"
+                      className={`btn-marcar-pago ${cliente.pagouUltimos30Dias ? 'btn-marcar-pago-desabilitado' : ''}`}
                       onClick={() => handleAbrirModalPagamento(cliente)}
-                      disabled={loading || !planoSelecionado}
+                      disabled={loading || !planoSelecionado || cliente.pagouUltimos30Dias}
                     >
                       <span className="material-symbols-rounded">check_circle</span>
                       Marcar como Pago
@@ -950,6 +1123,86 @@ const ExtratoFinanceiro = () => {
                 onClick={() => setModalPagamento(null)}
               >
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Alerta - Pagamento Recente */}
+      {modalPagamentoRecente && (
+        <div className="modal-overlay-pagamento" onClick={() => setModalPagamentoRecente(null)}>
+          <div className="modal-content-pagamento" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-pagamento">
+              <h2 className="modal-title-pagamento" style={{ color: "#991B1B" }}>
+                ⚠️ Pagamento Recente
+              </h2>
+              <button 
+                className="modal-close-btn-pagamento" 
+                onClick={() => setModalPagamentoRecente(null)}
+              >
+                <span className="material-symbols-rounded">close</span>
+              </button>
+            </div>
+
+            <div className="modal-body-pagamento">
+              <div style={{ 
+                padding: "16px", 
+                backgroundColor: "#FEE2E2", 
+                borderRadius: "12px", 
+                marginBottom: "16px",
+                border: "1px solid #FCA5A5"
+              }}>
+                <p style={{ 
+                  margin: 0, 
+                  color: "#991B1B", 
+                  fontSize: "14px", 
+                  lineHeight: "1.6",
+                  textAlign: "center"
+                }}>
+                  Este cliente já realizou um pagamento nos últimos 30 dias.
+                </p>
+              </div>
+
+              <div className="modal-info-item">
+                <span className="modal-info-label">Cliente:</span>
+                <span className="modal-info-value">{modalPagamentoRecente.clienteNome}</span>
+              </div>
+
+              <div className="modal-info-item">
+                <span className="modal-info-label">Data do Último Pagamento:</span>
+                <span className="modal-info-value">{modalPagamentoRecente.dataPagamento}</span>
+              </div>
+
+              <div className="modal-info-item">
+                <span className="modal-info-label">Valor Pago:</span>
+                <span className="modal-info-value">{modalPagamentoRecente.valor}</span>
+              </div>
+
+              <div style={{ 
+                padding: "12px", 
+                backgroundColor: "#FEF3C7", 
+                borderRadius: "8px", 
+                marginTop: "16px"
+              }}>
+                <p style={{ 
+                  margin: 0, 
+                  color: "#92400E", 
+                  fontSize: "13px", 
+                  lineHeight: "1.5"
+                }}>
+                  <strong>Lembrete:</strong> Cada cliente pode realizar apenas um pagamento a cada 30 dias.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions-pagamento">
+              <button
+                className="btn-cancelar-pagamento"
+                onClick={() => setModalPagamentoRecente(null)}
+                style={{ width: "100%" }}
+              >
+                Entendi
               </button>
             </div>
           </div>

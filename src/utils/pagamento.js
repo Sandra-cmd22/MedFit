@@ -10,7 +10,7 @@
  */
 export function calcularVencimento(ultimoPagamento, tipoPlano = "mensal") {
   const vencimento = new Date(ultimoPagamento);
-  vencimento.setHours(0, 0, 0, 0); // Zerar horas para comparação correta
+  vencimento.setHours(0, 0, 0, 0);
 
   switch (tipoPlano) {
     case "mensal":
@@ -23,7 +23,6 @@ export function calcularVencimento(ultimoPagamento, tipoPlano = "mensal") {
       vencimento.setFullYear(vencimento.getFullYear() + 1);
       break;
     default:
-      // Por padrão, considera mensal
       vencimento.setMonth(vencimento.getMonth() + 1);
   }
 
@@ -32,99 +31,140 @@ export function calcularVencimento(ultimoPagamento, tipoPlano = "mensal") {
 
 /**
  * Calcula a situação do pagamento (EM DIA ou ATRASADO)
- * @param {Date|string|null} ultimoPagamento - Data do último pagamento (null se nunca pagou)
- * @param {string} tipoPlano - Tipo do plano: "mensal" | "trimestral" | "anual"
- * @param {Date|string|null} dataCadastro - Data de cadastro (usado se nunca pagou)
- * @returns {string} "EM DIA" ou "ATRASADO"
+ * REGRA FINAL:
+ * - Se NÃO existe pagamento no banco → ATRASADO
+ * - Se existe pagamento:
+ *    - Hoje <= vencimento → EM DIA
+ *    - Hoje > vencimento → ATRASADO
+ *
+ * @param {Date|string|null} ultimoPagamento
+ * @param {string} tipoPlano
+ * @returns {string} "EM DIA" | "ATRASADO"
  */
-export function calcularSituacao(ultimoPagamento, tipoPlano = "mensal", dataCadastro = null) {
+export function calcularSituacao(ultimoPagamento, tipoPlano = "mensal") {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  // Se nunca pagou, usar data de cadastro como referência
-  let dataReferencia = ultimoPagamento;
+  // 🔴 REGRA PRINCIPAL: sem pagamento no banco = ATRASADO
+  if (!ultimoPagamento) {
+    console.log("⚠️ calcularSituacao: ultimoPagamento é null/undefined");
+    return "ATRASADO";
+  }
+
+  // Validar se ultimoPagamento é uma data válida
+  const dataReferencia = new Date(ultimoPagamento);
   
-  if (!dataReferencia) {
-    if (dataCadastro) {
-      dataReferencia = new Date(dataCadastro);
-    } else {
-      // Se não tem nenhuma data, considerar como em dia (cliente novo)
-      return "EM DIA";
-    }
-  } else {
-    dataReferencia = new Date(dataReferencia);
+  if (isNaN(dataReferencia.getTime())) {
+    console.error("❌ calcularSituacao: Data inválida:", ultimoPagamento);
+    return "ATRASADO";
   }
 
   dataReferencia.setHours(0, 0, 0, 0);
 
   const vencimento = calcularVencimento(dataReferencia, tipoPlano);
+  vencimento.setHours(0, 0, 0, 0);
 
-  // Se hoje é maior que o vencimento, está atrasado
-  return hoje > vencimento ? "ATRASADO" : "EM DIA";
+  console.log("=".repeat(60));
+  console.log("📊 CALCULANDO SITUAÇÃO");
+  console.log(`📅 Último pagamento: ${dataReferencia.toLocaleDateString("pt-BR")}`);
+  console.log(`📅 Vencimento: ${vencimento.toLocaleDateString("pt-BR")}`);
+  console.log(`📅 Hoje: ${hoje.toLocaleDateString("pt-BR")}`);
+  console.log(`📅 Tipo plano: ${tipoPlano}`);
+  console.log(`📊 Comparação: hoje (${hoje.getTime()}) > vencimento (${vencimento.getTime()}) = ${hoje > vencimento}`);
+  
+  const situacao = hoje > vencimento ? "ATRASADO" : "EM DIA";
+  console.log(`✅ Situação: ${situacao}`);
+  console.log("=".repeat(60));
+
+  return situacao;
 }
 
 /**
  * Busca o último pagamento de um cliente na coleção de pagamentos
- * @param {string} clienteId - ID do cliente
- * @param {Function} getDocs - Função do Firestore para buscar documentos
- * @param {Function} collection - Função do Firestore para acessar coleção
- * @param {Function} query - Função do Firestore para criar query
- * @param {Function} where - Função do Firestore para filtrar
- * @param {Function} orderBy - Função do Firestore para ordenar
- * @param {Object} db - Instância do Firestore
- * @returns {Promise<Date|null>} Data do último pagamento ou null
+ * @param {string} clienteId
+ * @param {Object} deps - Dependências do Firestore
+ * @returns {Promise<Date|null>}
  */
-export async function buscarUltimoPagamento(clienteId, { getDocs, collection, query, where, orderBy, db }) {
+export async function buscarUltimoPagamento(
+  clienteId,
+  { getDocs, collection, query, where, orderBy, db }
+) {
   try {
     const pagamentosRef = collection(db, "pagamentos");
+
     const q = query(
       pagamentosRef,
       where("clienteId", "==", clienteId),
       orderBy("dataPagamento", "desc")
     );
+
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
+      console.log(`⚠️ Cliente ${clienteId}: Nenhum pagamento encontrado`);
       return null;
     }
 
-    // Pegar o primeiro documento (mais recente)
     const ultimoPagamentoDoc = snapshot.docs[0].data();
     
-    // Converter dataPagamento corretamente (pode ser Timestamp do Firestore)
-    let dataPagamento = null;
-    
+    console.log(`✅ Cliente ${clienteId}: Pagamento encontrado:`, {
+      dataPagamento: ultimoPagamentoDoc.dataPagamento,
+      tipo: typeof ultimoPagamentoDoc.dataPagamento,
+      temToDate: ultimoPagamentoDoc.dataPagamento?.toDate ? true : false,
+      temSeconds: ultimoPagamentoDoc.dataPagamento?.seconds ? true : false,
+    });
+
+    // Conversão segura de data - verificar todos os formatos possíveis
     if (ultimoPagamentoDoc.dataPagamento) {
-      // Se for Timestamp do Firestore (tem método toDate)
-      if (ultimoPagamentoDoc.dataPagamento.toDate && typeof ultimoPagamentoDoc.dataPagamento.toDate === 'function') {
+      let dataPagamento = null;
+
+      // 1. Firebase Timestamp (tem método toDate)
+      if (
+        ultimoPagamentoDoc.dataPagamento.toDate &&
+        typeof ultimoPagamentoDoc.dataPagamento.toDate === "function"
+      ) {
         dataPagamento = ultimoPagamentoDoc.dataPagamento.toDate();
+        console.log(`📅 Cliente ${clienteId}: Convertido via toDate(): ${dataPagamento.toLocaleDateString("pt-BR")}`);
       }
-      // Se for Timestamp com seconds
+      // 2. Timestamp com seconds
       else if (ultimoPagamentoDoc.dataPagamento.seconds) {
         dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento.seconds * 1000);
+        console.log(`📅 Cliente ${clienteId}: Convertido via seconds: ${dataPagamento.toLocaleDateString("pt-BR")}`);
       }
-      // Se for Timestamp com _seconds (formato antigo)
+      // 3. Timestamp com _seconds (formato antigo)
       else if (ultimoPagamentoDoc.dataPagamento._seconds) {
         dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento._seconds * 1000);
+        console.log(`📅 Cliente ${clienteId}: Convertido via _seconds: ${dataPagamento.toLocaleDateString("pt-BR")}`);
       }
-      // Se for string ou Date
+      // 4. String (ISO ou formato brasileiro)
+      else if (typeof ultimoPagamentoDoc.dataPagamento === "string") {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento);
+        console.log(`📅 Cliente ${clienteId}: Convertido via string: ${dataPagamento.toLocaleDateString("pt-BR")}`);
+      }
+      // 5. Date object
+      else if (ultimoPagamentoDoc.dataPagamento instanceof Date) {
+        dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento);
+        console.log(`📅 Cliente ${clienteId}: Já é Date: ${dataPagamento.toLocaleDateString("pt-BR")}`);
+      }
+      // 6. Tentar converter como último recurso
       else {
         dataPagamento = new Date(ultimoPagamentoDoc.dataPagamento);
+        console.log(`📅 Cliente ${clienteId}: Convertido via new Date(): ${dataPagamento.toLocaleDateString("pt-BR")}`);
       }
-    }
-    // Fallback para dataCriacao se dataPagamento não existir
-    else if (ultimoPagamentoDoc.dataCriacao) {
-      if (ultimoPagamentoDoc.dataCriacao.toDate && typeof ultimoPagamentoDoc.dataCriacao.toDate === 'function') {
-        dataPagamento = ultimoPagamentoDoc.dataCriacao.toDate();
+
+      // Validar se a data é válida
+      if (dataPagamento && !isNaN(dataPagamento.getTime())) {
+        return dataPagamento;
       } else {
-        dataPagamento = new Date(ultimoPagamentoDoc.dataCriacao);
+        console.error(`❌ Cliente ${clienteId}: Data inválida após conversão:`, ultimoPagamentoDoc.dataPagamento);
+        return null;
       }
     }
 
-    return dataPagamento;
+    console.log(`⚠️ Cliente ${clienteId}: Pagamento sem campo dataPagamento`);
+    return null;
   } catch (error) {
-    console.error("Erro ao buscar último pagamento:", error);
+    console.error(`❌ Erro ao buscar último pagamento para cliente ${clienteId}:`, error);
     return null;
   }
 }
-

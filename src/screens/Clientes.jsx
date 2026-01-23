@@ -11,7 +11,7 @@ import { calcularSituacao, buscarUltimoPagamento } from "../utils/pagamento.js";
 
 const Clientes = () => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,7 +32,8 @@ const Clientes = () => {
             ...docSnapshot.data(),
           };
 
-          // Buscar último pagamento
+          // Buscar último pagamento na coleção de pagamentos
+          // (mesma lógica utilizada na tela de Extrato)
           const ultimoPagamento = await buscarUltimoPagamento(clienteData.id, {
             getDocs,
             collection,
@@ -42,16 +43,18 @@ const Clientes = () => {
             db,
           });
 
-          // Calcular situação (plano atual é numérico, mas tratamos como "mensal")
-          const situacao = calcularSituacao(
-            ultimoPagamento,
-            "mensal", // Todos os planos são mensais
-            clienteData.ultimoPagamento || clienteData.dataCadastro
-          );
+          // Calcular situação usando a REGRA GLOBAL:
+          // - Se NÃO existe pagamento no banco → ATRASADO
+          // - Se existe pagamento e NÃO venceu → EM DIA
+          // - Se existe pagamento e venceu → ATRASADO
+          //
+          // Mesma lógica usada na tela de Extrato
+          const situacao = calcularSituacao(ultimoPagamento, "mensal");
 
           return {
             ...clienteData,
-            ultimoPagamento: ultimoPagamento || clienteData.ultimoPagamento,
+            // Guardar a data real do último pagamento vinda da coleção "pagamentos"
+            ultimoPagamento: ultimoPagamento || null,
             situacaoPagamento: situacao,
           };
         })
@@ -71,12 +74,12 @@ const Clientes = () => {
   }, []);
 
   const clients = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = searchTerm.trim().toLowerCase();
     if (!q) return clientes;
     return clientes.filter((c) =>
       `${c.nome} ${c.sobrenome || ""}`.toLowerCase().includes(q)
     );
-  }, [query, clientes]);
+  }, [searchTerm, clientes]);
 
   const goToHome = (c) => {
     const fullName = `${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`;
@@ -192,8 +195,8 @@ const Clientes = () => {
           id="search"
           className="search-input"
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Digite o nome"
         />
       </div>
