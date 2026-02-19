@@ -4,6 +4,8 @@ import "./Historico.css";
 import BottomNav from "../components/BottomNav.jsx";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebase.js";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Historico = () => {
   const location = useLocation();
@@ -223,6 +225,170 @@ const Historico = () => {
     return diferencas;
   };
 
+  const gerarAvaliacaoPDF = () => {
+    if (!clienteData) {
+      alert("Nenhum dado de cliente disponível para gerar o PDF.");
+      return;
+    }
+
+    const avaliacaoAtual =
+      avaliacoes && avaliacoes.length > 0 ? avaliacoes[0] : null;
+    const medidasAtuais =
+      (avaliacaoAtual && avaliacaoAtual.medidas) || clienteData.medidas || {};
+
+    let imc = "-";
+    if (clienteData.peso && clienteData.altura) {
+      const alturaEmMetros =
+        clienteData.altura > 3 ? clienteData.altura / 100 : clienteData.altura;
+      const imcCalculado = clienteData.peso / (alturaEmMetros * alturaEmMetros);
+      imc = Number(imcCalculado.toFixed(1));
+    }
+
+    const rcq =
+      medidasAtuais.cintura && medidasAtuais.quadril
+        ? (medidasAtuais.cintura / medidasAtuais.quadril).toFixed(2)
+        : "-";
+
+    try {
+      const docPdf = new jsPDF();
+      const pageWidth = docPdf.internal.pageSize.getWidth();
+      const margin = 20;
+      let yPos = margin;
+
+      docPdf.setFontSize(20);
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("Avaliação Física - MedFit", pageWidth / 2, yPos, {
+        align: "center",
+      });
+      yPos += 10;
+
+      docPdf.setFontSize(14);
+      docPdf.setFont("helvetica", "normal");
+      const dataAvaliacao =
+        (avaliacaoAtual &&
+          (avaliacaoAtual.evaluationDate ||
+            avaliacaoAtual.dataAvaliacao ||
+            avaliacaoAtual.startDate)) ||
+        clienteData.dataCadastro;
+
+      docPdf.text(
+        `Cliente: ${clienteData.nome || "-"}`,
+        margin,
+        yPos
+      );
+      yPos += 7;
+      docPdf.text(
+        `Data da avaliação: ${formatDate(dataAvaliacao)}`,
+        margin,
+        yPos
+      );
+      yPos += 12;
+
+      docPdf.setFontSize(16);
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("Dados Básicos", margin, yPos);
+      yPos += 8;
+
+      autoTable(docPdf, {
+        startY: yPos,
+        head: [["Campo", "Valor"]],
+        body: [
+          ["Idade", String(clienteData.idade || "-") + " anos"],
+          ["Altura", String(clienteData.altura || "-") + " cm"],
+          ["Peso", String(clienteData.peso || "-") + " kg"],
+          ["Sexo", clienteData.sexo || "-"],
+          ["IMC", String(imc)],
+          ["RCQ", String(rcq)],
+        ],
+        theme: "striped",
+        headStyles: {
+          fillColor: [0, 0, 0],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        bodyStyles: {
+          textColor: [0, 0, 0],
+        },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10 },
+      });
+
+      yPos = docPdf.lastAutoTable.finalY + 12;
+
+      docPdf.setFontSize(16);
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("Medidas Corporais", margin, yPos);
+      yPos += 8;
+
+      const entradasMedidas = [
+        ["Braço Direito", medidasAtuais.bracoDireito],
+        ["Braço Esquerdo", medidasAtuais.bracoEsquerdo],
+        ["Braço Força Direito", medidasAtuais.bracoForcaDireito],
+        ["Braço Força Esquerdo", medidasAtuais.bracoForcaEsquerdo],
+        ["Antebraço Direito", medidasAtuais.antebracoDireito],
+        ["Antebraço Esquerdo", medidasAtuais.antebracoEsquerdo],
+        ["Tórax", medidasAtuais.torax],
+        ["Cintura", medidasAtuais.cintura],
+        ["Quadril", medidasAtuais.quadril],
+        ["Abdômen", medidasAtuais.abdomen],
+        ["Coxa Proximal Direita", medidasAtuais.coxaProximalDireita],
+        ["Coxa Proximal Esquerda", medidasAtuais.coxaProximalEsquerda],
+        ["Coxa Distal Direita", medidasAtuais.coxaDistalDireita],
+        ["Coxa Distal Esquerda", medidasAtuais.coxaDistalEsquerda],
+        ["Panturrilha Direita", medidasAtuais.panturrilhaDireita],
+        ["Panturrilha Esquerda", medidasAtuais.panturrilhaEsquerda],
+      ].map(([label, valor]) => [
+        label,
+        valor || "-",
+        valor ? "cm" : "",
+      ]);
+
+      autoTable(docPdf, {
+        startY: yPos,
+        head: [["Medida", "Valor", "Unidade"]],
+        body: entradasMedidas,
+        theme: "striped",
+        headStyles: {
+          fillColor: [0, 0, 0],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        bodyStyles: {
+          textColor: [0, 0, 0],
+        },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10 },
+        columnStyles: {
+          0: { cellWidth: 70 },
+          1: { cellWidth: 30, halign: "right" },
+          2: { cellWidth: 20, halign: "center" },
+        },
+      });
+
+      const totalPages = docPdf.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i += 1) {
+        docPdf.setPage(i);
+        docPdf.setFontSize(8);
+        docPdf.setFont("helvetica", "italic");
+        docPdf.text(
+          "Gerado pelo MedFit",
+          pageWidth / 2,
+          docPdf.internal.pageSize.getHeight() - 10,
+          { align: "center" }
+        );
+      }
+
+      const nomeArquivo = `avaliacao-${(clienteData.nome || "cliente")
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, "-")}.pdf`;
+      docPdf.save(nomeArquivo);
+    } catch (error) {
+      console.error("Erro ao gerar PDF da avaliação:", error);
+      alert("Erro ao gerar o PDF da avaliação. Tente novamente.");
+    }
+  };
+
   const renderizarValorComComparacao = (medida, valor) => {
     if (!avaliacoes || avaliacoes.length < 2) {
       return <span className="value">{valor || "-"} cm</span>;
@@ -272,7 +438,13 @@ const Historico = () => {
   const shareToWhatsApp = () => {
     if (!clienteData) return;
 
-    const medidas = clienteData.medidas || {};
+    // Gera o PDF da avaliação mais recente antes de abrir o WhatsApp
+    gerarAvaliacaoPDF();
+
+    const avaliacaoAtual =
+      avaliacoes && avaliacoes.length > 0 ? avaliacoes[0] : null;
+    const medidas =
+      (avaliacaoAtual && avaliacaoAtual.medidas) || clienteData.medidas || {};
     let imc = "-";
     if (clienteData.peso && clienteData.altura) {
       // Converter altura de cm para metros se necessário (se altura > 3, assume que está em cm)
@@ -284,6 +456,13 @@ const Historico = () => {
       medidas.cintura && medidas.quadril
         ? (medidas.cintura / medidas.quadril).toFixed(2)
         : "-";
+
+    const dataAvaliacao =
+      (avaliacaoAtual &&
+        (avaliacaoAtual.evaluationDate ||
+          avaliacaoAtual.dataAvaliacao ||
+          avaliacaoAtual.startDate)) ||
+      clienteData.dataCadastro;
 
     // Montar informações de contato e endereço
     const enderecoCompleto = [];
@@ -297,7 +476,7 @@ const Historico = () => {
     const message = `📊 *RELATÓRIO DE AVALIAÇÃO FÍSICA*
   
 👤 *Cliente:* ${clienteData.nome}
-📅 *Data:* ${formatDate(clienteData.dataCadastro)}
+📅 *Data:* ${formatDate(dataAvaliacao)}
 
 📏 *DADOS BÁSICOS:*
 • Idade: ${clienteData.idade || "-"} anos
@@ -394,13 +573,22 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
           <span className="material-symbols-rounded">arrow_back</span>
         </button>
         <h1 className="historico-title">Histórico Completo</h1>
-        <button
-          className="icon-btn"
-          onClick={shareToWhatsApp}
-          title="Compartilhar no WhatsApp"
-        >
-          <span className="material-symbols-rounded">share</span>
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            className="icon-btn"
+            onClick={gerarAvaliacaoPDF}
+            title="Baixar avaliação em PDF"
+          >
+            <span className="material-symbols-rounded">description</span>
+          </button>
+          <button
+            className="icon-btn"
+            onClick={shareToWhatsApp}
+            title="Compartilhar no WhatsApp (última avaliação)"
+          >
+            <span className="material-symbols-rounded">share</span>
+          </button>
+        </div>
       </div>
 
       <div className="historico-content">
