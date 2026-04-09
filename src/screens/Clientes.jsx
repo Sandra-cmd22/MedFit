@@ -75,10 +75,22 @@ const Clientes = () => {
 
   const clients = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return clientes;
-    return clientes.filter((c) =>
-      `${c.nome} ${c.sobrenome || ""}`.toLowerCase().includes(q)
-    );
+    const base = q
+      ? clientes.filter((c) =>
+          `${c.nome} ${c.sobrenome || ""}`.toLowerCase().includes(q)
+        )
+      : clientes;
+
+    return base
+      .slice()
+      .sort((a, b) => {
+        const aName = `${a?.nome || ""} ${a?.sobrenome || ""}`.trim();
+        const bName = `${b?.nome || ""} ${b?.sobrenome || ""}`.trim();
+
+        const cmp = aName.localeCompare(bName, "pt-BR", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return String(a?.id || "").localeCompare(String(b?.id || ""));
+      });
   }, [searchTerm, clientes]);
 
   const goToHome = (c) => {

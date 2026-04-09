@@ -113,8 +113,24 @@ const Home = () => {
     try {
       // Busca cliente pelo campo "nome"
       const clientesRef = collection(db, "clientes");
-      const q = query(clientesRef, where("nome", "==", userName));
-      const querySnapshot = await getDocs(q);
+      let querySnapshot = await getDocs(
+        query(clientesRef, where("nome", "==", userName))
+      );
+
+      // Fallback: nome exibido pode vir como "Nome Sobrenome"
+      if (querySnapshot.empty && userName.includes(" ")) {
+        const [nome, ...rest] = userName.split(" ").filter(Boolean);
+        const sobrenome = rest.join(" ").trim();
+        if (nome && sobrenome) {
+          querySnapshot = await getDocs(
+            query(
+              clientesRef,
+              where("nome", "==", nome),
+              where("sobrenome", "==", sobrenome)
+            )
+          );
+        }
+      }
 
       if (!querySnapshot.empty) {
         const cliente = querySnapshot.docs[0].data();

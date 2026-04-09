@@ -2,7 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Historico.css";
 import BottomNav from "../components/BottomNav.jsx";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../firebase.js";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -13,10 +21,12 @@ const Historico = () => {
   const [clienteData, setClienteData] = useState(
     location?.state?.clienteData || null
   );
+  const [clienteDocId, setClienteDocId] = useState(null);
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
   const userName = location?.state?.userName || "Cliente";
+  const reloadKey = location?.state?.reloadKey || 0;
 
   console.log(userName);
 
@@ -35,6 +45,7 @@ const Historico = () => {
         if (!clienteSnapshot.empty) {
           const clienteDoc = clienteSnapshot.docs[0];
           clienteId = clienteDoc.id;
+          setClienteDocId(clienteDoc.id);
           setClienteData(clienteDoc.data());
         }
 
@@ -140,7 +151,53 @@ const Historico = () => {
     };
 
     fetchData();
-  }, [userName]);
+  }, [userName, reloadKey]);
+
+  const handleEditarAvaliacao = (avaliacao, isLatest) => {
+    if (!avaliacao?.id) return;
+    navigate("/avaliacao", {
+      state: {
+        name: userName,
+        clienteId: clienteDocId,
+        clienteData,
+        avaliacaoId: avaliacao.id,
+        avaliacaoData: avaliacao,
+        returnTo: "historico",
+        allowUpdateCliente: Boolean(isLatest),
+      },
+    });
+  };
+
+  const handleApagarAvaliacao = async (avaliacao, isLatest) => {
+    if (!avaliacao?.id) return;
+    const ok = window.confirm("Tem certeza que deseja apagar esta avaliação?");
+    if (!ok) return;
+
+    try {
+      await deleteDoc(doc(db, "avaliacoes", avaliacao.id));
+
+      // Se apagou a avaliação mais recente, tenta “recuar” os dados do cliente
+      if (isLatest && clienteDocId) {
+        const proxima = avaliacoes.length > 1 ? avaliacoes[1] : null;
+        if (proxima) {
+          const dataRef =
+            proxima.evaluationDate || proxima.startDate || proxima.endDate || null;
+          await updateDoc(doc(db, "clientes", clienteDocId), {
+            medidas: proxima.medidas || {},
+            idade: proxima.idade ?? clienteData?.idade ?? null,
+            peso: proxima.peso ?? clienteData?.peso ?? null,
+            dataUltimaAvaliacao: dataRef,
+          });
+        }
+      }
+
+      // força recarregar lista
+      navigate("/historico", { state: { userName, reloadKey: Date.now() } });
+    } catch (error) {
+      console.error("Erro ao apagar avaliação:", error);
+      alert("Não foi possível apagar a avaliação. Tente novamente.");
+    }
+  };
 
   // Função auxiliar para formatar data
   const formatDate = (dateString) => {
@@ -151,7 +208,7 @@ const Historico = () => {
     }
     try {
       return new Date(dateString).toLocaleDateString("pt-BR");
-    } catch (error) {
+    } catch {
       return "-";
     }
   };
@@ -387,52 +444,6 @@ const Historico = () => {
       console.error("Erro ao gerar PDF da avaliação:", error);
       alert("Erro ao gerar o PDF da avaliação. Tente novamente.");
     }
-  };
-
-  const renderizarValorComComparacao = (medida, valor) => {
-    if (!avaliacoes || avaliacoes.length < 2) {
-      return <span className="value">{valor || "-"} cm</span>;
-    }
-
-    const diferencas = calcularDiferencas(avaliacoes[0], avaliacoes[1]);
-    const diferenca = diferencas[medida];
-
-    if (!diferenca) {
-      return <span className="value">{valor || "-"} cm</span>;
-    }
-
-    const valorAtual = diferenca.atual;
-    const valorAnterior = diferenca.anterior;
-    const isMelhoria = diferenca.melhoria;
-
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "14px",
-        }}
-      >
-        <span
-          style={{
-            color: isMelhoria ? "#4CAF50" : "#F44336",
-            fontWeight: "bold",
-          }}
-        >
-          {valorAtual}cm
-        </span>
-        <span style={{ color: "#666" }}>/</span>
-        <span
-          style={{
-            color: isMelhoria ? "#F44336" : "#4CAF50",
-            fontWeight: "bold",
-          }}
-        >
-          {valorAnterior}cm
-        </span>
-      </div>
-    );
   };
 
   const shareToWhatsApp = () => {
@@ -831,7 +842,10 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
 
                 const isExpandida = avaliacaoSelecionada === avaliacao.id;
                 const medidasComValor = Object.entries(avaliacao.medidas || {})
-                  .filter(([_, valor]) => valor && valor !== "" && valor !== "0");
+                  .filter(([key, valor]) => {
+                    void key;
+                    return valor && valor !== "" && valor !== "0";
+                  });
 
                 return (
                   <div 
@@ -852,6 +866,28 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
                       </span>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {index === 0 && <span className="badge-atual">Atual</span>}
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          title="Editar avaliação"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditarAvaliacao(avaliacao, index === 0);
+                          }}
+                        >
+                          <span className="material-symbols-rounded">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          title="Apagar avaliação"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApagarAvaliacao(avaliacao, index === 0);
+                          }}
+                        >
+                          <span className="material-symbols-rounded">delete</span>
+                        </button>
                         <span className="material-symbols-rounded" style={{ 
                           fontSize: '18px', 
                           color: '#666',
