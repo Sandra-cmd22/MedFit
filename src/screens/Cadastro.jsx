@@ -1,13 +1,8 @@
-import { ptBR } from "date-fns/locale";
 import { addDoc, collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase.js";
-import BottomNav from "../components/BottomNav.jsx";
-import "./Cadastro.css";
-registerLocale("pt-BR", ptBR);
+import { MEDIDAS_CAMPOS } from "../utils/indices.js";
 
 // Funções auxiliares para formatação
 const formatCPF = (value) => {
@@ -26,6 +21,9 @@ const formatTelefone = (value) => {
   }
   return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
 };
+
+// "bracoDireito" -> "braco-direito" (ids lidos em handleCadastrar)
+const toInputId = (key) => key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 
 const Cadastro = () => {
   const navigate = useNavigate();
@@ -184,167 +182,75 @@ const Cadastro = () => {
   };
 
   return (
-    <div className="container">
-      <div className="scroll-view">
-        <div className="header">
-          <a href="#" className="back-button" onClick={() => navigate(-1)}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
-            >
-              arrow_back
-            </span>
-          </a>
-          <h1 className="header-text">Cadastro</h1>
-          <div className="placeholder" />
+    <div className="page page-narrow">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Cadastrar cliente</h1>
+          <p className="page-subtitle">
+            Os dados e medidas informados aqui viram a primeira avaliação do cliente.
+          </p>
         </div>
+      </div>
 
-        <div className="form-content">
-          <div className="col full-width">
-            <label className="label" htmlFor="nome">
-              Nome
-            </label>
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">
+            <span className="material-symbols-rounded">person</span>
+            Dados pessoais
+          </h2>
+          <span className="panel-hint">Nome e plano são obrigatórios</span>
+        </div>
+        <div className="form-grid">
+          <div className="field span-2">
+            <label htmlFor="nome">Nome</label>
             <input className="input" type="text" id="nome" />
           </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="idade">
-                Idade
-              </label>
-              <input className="input" type="text" id="idade" />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="altura">
-                Altura (cm)
-              </label>
-              <input 
-                className="input" 
-                type="number" 
-                id="altura" 
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-                max="300"
-                placeholder="Ex: 1.80 ou 1,80"
-                onChange={(e) => {
-                  // Converte vírgula para ponto em tempo real
-                  const value = e.target.value.replace(",", ".");
-                  e.target.value = value;
-                }}
-              />
-            </div>
+          <div className="field">
+            <label htmlFor="idade">Idade</label>
+            <input className="input" type="text" id="idade" />
           </div>
-
-          <div className="col full-width">
-            <label className="label" htmlFor="endereco">
-              Endereço
+          <div className="field">
+            <label htmlFor="sexo">Sexo</label>
+            <select
+              id="sexo"
+              name="sexo"
+              className="input"
+              value={sexo}
+              onChange={(e) => setSexo(e.target.value)}
+            >
+              <option value="">Selecione</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Masculino">Masculino</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="altura">
+              Altura <span className="field-unit">(m)</span>
             </label>
-            <input className="input" type="text" id="endereco" />
+            <input
+              className="input"
+              type="number"
+              id="altura"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              max="300"
+              placeholder="Ex: 1.80 ou 1,80"
+              onChange={(e) => {
+                // Converte vírgula para ponto em tempo real
+                const value = e.target.value.replace(",", ".");
+                e.target.value = value;
+              }}
+            />
           </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="bairro">
-                Bairro
-              </label>
-              <input className="input" type="text" id="bairro" />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="numero">
-                Número
-              </label>
-              <input className="input" type="text" id="numero" />
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="cidade">
-                Cidade
-              </label>
-              <input className="input" type="text" id="cidade" />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="estado">
-                Estado
-              </label>
-              <input className="input" type="text" id="estado" maxLength="2" placeholder="Ex: SP" />
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="telefone">
-                Telefone
-              </label>
-              <input 
-                className="input" 
-                type="tel" 
-                id="telefone" 
-                placeholder="(00) 00000-0000"
-                maxLength="15"
-                onChange={(e) => {
-                  const formatted = formatTelefone(e.target.value);
-                  e.target.value = formatted;
-                }}
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="cpf">
-                CPF
-              </label>
-              <input 
-                className="input" 
-                type="text" 
-                id="cpf" 
-                placeholder="000.000.000-00"
-                maxLength="14"
-                onChange={(e) => {
-                  const formatted = formatCPF(e.target.value);
-                  e.target.value = formatted;
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="col full-width">
-            <label className="label" htmlFor="email">
-              Email
+          <div className="field">
+            <label htmlFor="peso">
+              Peso <span className="field-unit">(kg)</span>
             </label>
-            <input className="input" type="email" id="email" placeholder="exemplo@email.com" />
+            <input className="input" type="text" id="peso" />
           </div>
-
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="sexo">
-                Sexo
-              </label>
-              <select
-                id="sexo"
-                name="sexo"
-                className="input"
-                value={sexo}
-                onChange={(e) => setSexo(e.target.value)}
-              >
-                <option value="">Selecione</option>
-                <option value="Feminino">Feminino</option>
-                <option value="Masculino">Masculino</option>
-              </select>
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="peso">
-                Peso
-              </label>
-              <input className="input" type="text" id="peso" />
-            </div>
-          </div>
-
-        <div className="row">
-          <div className="col">
-            <label className="label" htmlFor="plano">
-              Plano semanal
-            </label>
+          <div className="field span-2">
+            <label htmlFor="plano">Plano semanal</label>
             <select
               id="plano"
               name="plano"
@@ -358,246 +264,108 @@ const Cadastro = () => {
             </select>
           </div>
         </div>
+      </section>
 
-          <span className="section-title medidas-title">Medidas</span>
-
-          {/* Medidas principais - Tórax, Abdômen, Cintura, Quadril */}
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="torax">
-                Tórax
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="torax"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="abdomen">
-                Abdômen
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="abdomen"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="cintura">
-                Cintura
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="cintura"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="quadril">
-                Quadril
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="quadril"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-
-          {/* Demais medidas */}
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="braco-direito">
-                Braço <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="braco-esquerdo">
-                Braço <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="braco-forca-direito">
-                Braço <span className="paren">(força)</span>{" "}
-                <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-forca-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="braco-forca-esquerdo">
-                Braço <span className="paren">(força)</span>{" "}
-                <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="braco-forca-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="antebraco-direito">
-                Antebraço <span className="paren">(direito)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="antebraco-direito"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="antebraco-esquerdo">
-                Antebraço <span className="paren">(esquerdo)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="antebraco-esquerdo"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="coxa-proximal-direita">
-                Coxa <span className="paren">(proximal) (direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-proximal-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="coxa-proximal-esquerda">
-                Coxa <span className="paren">(proximal) (esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-proximal-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="coxa-distal-direita">
-                Coxa <span className="paren">(distal) (direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-distal-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="coxa-distal-esquerda">
-                Coxa <span className="paren">(distal) (esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="coxa-distal-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col">
-              <label className="label" htmlFor="panturrilha-direita">
-                Panturrilha <span className="paren">(direita)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="panturrilha-direita"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className="col">
-              <label className="label" htmlFor="panturrilha-esquerda">
-                Panturrilha <span className="paren">(esquerda)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                id="panturrilha-esquerda"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-              />
-            </div>
-          </div>
-
-          <button type="button" className="button" onClick={handleCadastrar}>
-            <span className="button-text">Cadastrar</span>
-          </button>
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">
+            <span className="material-symbols-rounded">contact_mail</span>
+            Contato e endereço
+          </h2>
         </div>
-      </div>
+        <div className="form-grid">
+          <div className="field">
+            <label htmlFor="telefone">Telefone</label>
+            <input
+              className="input"
+              type="tel"
+              id="telefone"
+              placeholder="(00) 00000-0000"
+              maxLength="15"
+              onChange={(e) => {
+                const formatted = formatTelefone(e.target.value);
+                e.target.value = formatted;
+              }}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="cpf">CPF</label>
+            <input
+              className="input"
+              type="text"
+              id="cpf"
+              placeholder="000.000.000-00"
+              maxLength="14"
+              onChange={(e) => {
+                const formatted = formatCPF(e.target.value);
+                e.target.value = formatted;
+              }}
+            />
+          </div>
+          <div className="field span-2">
+            <label htmlFor="email">Email</label>
+            <input className="input" type="email" id="email" placeholder="exemplo@email.com" />
+          </div>
+          <div className="field span-2">
+            <label htmlFor="endereco">Endereço</label>
+            <input className="input" type="text" id="endereco" />
+          </div>
+          <div className="field">
+            <label htmlFor="numero">Número</label>
+            <input className="input" type="text" id="numero" />
+          </div>
+          <div className="field">
+            <label htmlFor="bairro">Bairro</label>
+            <input className="input" type="text" id="bairro" />
+          </div>
+          <div className="field span-2">
+            <label htmlFor="cidade">Cidade</label>
+            <input className="input" type="text" id="cidade" />
+          </div>
+          <div className="field">
+            <label htmlFor="estado">Estado</label>
+            <input className="input" type="text" id="estado" maxLength="2" placeholder="Ex: SP" />
+          </div>
+        </div>
+      </section>
 
-      <BottomNav />
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">
+            <span className="material-symbols-rounded">straighten</span>
+            Medidas iniciais
+          </h2>
+          <span className="panel-hint">Valores em centímetros</span>
+        </div>
+        <div className="form-grid">
+          {MEDIDAS_CAMPOS.map(({ key, label }) => {
+            const id = toInputId(key);
+            return (
+              <div className="field" key={key}>
+                <label htmlFor={id}>{label}</label>
+                <input
+                  className="input"
+                  type="number"
+                  id={id}
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="form-footer">
+        <button type="button" className="btn btn-outline" onClick={() => navigate(-1)}>
+          Cancelar
+        </button>
+        <button type="button" className="btn btn-primary" onClick={handleCadastrar}>
+          <span className="material-symbols-rounded">check</span>
+          Cadastrar cliente
+        </button>
+      </div>
     </div>
   );
 };

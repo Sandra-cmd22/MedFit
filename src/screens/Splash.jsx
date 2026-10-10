@@ -38,48 +38,53 @@ const Splash = () => {
   };
 
   return (
-    <div className="splash-container">
-      <div className="splash-background">
-        <img src={backgroundImg} alt="Background" className="splash-bg-img" />
-      </div>
-      <div className="splash-logo">
-        <img src={logoRed} alt="Logo" className="logo-img" />
-      </div>
+    <div className="login-page">
+      <section
+        className="login-hero"
+        style={{ backgroundImage: `url(${backgroundImg})` }}
+      >
+        <div className="login-hero-overlay" />
+        <div className="login-hero-content">
+          <div className="login-brand">
+            <img src={logoRed} alt="" className="login-brand-logo" />
+            <span>MedFit</span>
+          </div>
+          <div>
+            <h1 className="login-hero-title">Avaliação física e acompanhamento de clientes</h1>
+            <p className="login-hero-text">
+              Cadastre clientes, registre medidas e acompanhe a evolução de IMC e RCQ em um só lugar.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      <div className="splash-card">
-        <h2 className="splash-title">Bem-vinda(o)!</h2>
-        <p className="splash-subtitle">
-          Digite a senha de acesso para abrir o painel seguro.
-        </p>
+      <section className="login-form-side">
+        <form className="login-form" onSubmit={handleSubmit}>
+          <h2 className="login-title">Entrar</h2>
+          <p className="login-subtitle">
+            Digite a senha de acesso para abrir o painel.
+          </p>
 
-        <form className="splash-form" onSubmit={handleSubmit}>
-          <label className="splash-label" htmlFor="password">
-            Senha
-          </label>
-          <div className="splash-input-wrapper">
-            <span
-              className="material-symbols-rounded splash-icon"
-              style={{ fontVariationSettings: '"wght" 300' }}
-            >
-              lock
-            </span>
+          <div className="field">
+            <label htmlFor="password">Senha</label>
             <input
               id="password"
               type="password"
-              className="splash-input"
+              className="input login-input"
               placeholder="Digite a senha"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
+              autoFocus
             />
           </div>
-          {error && <p className="splash-error">{error}</p>}
+          {error && <p className="login-error">{error}</p>}
 
-          <button className="primary-btn" type="submit" disabled={loading}>
+          <button className="btn btn-primary login-submit" type="submit" disabled={loading}>
             {loading ? "Verificando..." : "Entrar"}
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 };

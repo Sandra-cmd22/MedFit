@@ -1,5 +1,3 @@
-import "./ModalAcoesCliente.css";
-
 const ModalAcoesCliente = ({ cliente, isOpen, onClose, onEditarDados, onToggleStatus }) => {
   if (!isOpen || !cliente) return null;
 
@@ -8,41 +6,32 @@ const ModalAcoesCliente = ({ cliente, isOpen, onClose, onEditarDados, onToggleSt
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Ações do cliente</h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
-            >
-              close
-            </span>
+          <h2>Ações do cliente</h2>
+          <button type="button" className="icon-action" onClick={onClose} title="Fechar">
+            <span className="material-symbols-rounded">close</span>
           </button>
         </div>
 
-        <p className="modal-subtitle">
+        <p className="modal-body">
           O que deseja fazer com <strong>{nomeCompleto}</strong>?
         </p>
 
-        <div className="modal-actions">
-          <button className="modal-btn modal-btn-primary" onClick={onEditarDados}>
-            <span className="material-symbols-rounded">edit</span>
-            Editar dados
-          </button>
-
+        <div className="modal-footer">
           <button
-            className={`modal-btn ${isAtivo ? "modal-btn-warning" : "modal-btn-success"}`}
+            type="button"
+            className="btn btn-outline"
             onClick={onToggleStatus}
           >
             <span className="material-symbols-rounded">
               {isAtivo ? "person_off" : "person"}
             </span>
-            {isAtivo ? "Tornar cliente inativo" : "Tornar cliente ativo"}
+            {isAtivo ? "Tornar inativo" : "Tornar ativo"}
           </button>
-
-          <button className="modal-btn modal-btn-secondary" onClick={onClose}>
-            Fechar
+          <button type="button" className="btn btn-dark" onClick={onEditarDados}>
+            <span className="material-symbols-rounded">edit</span>
+            Editar dados
           </button>
         </div>
       </div>
@@ -51,4 +40,3 @@ const ModalAcoesCliente = ({ cliente, isOpen, onClose, onEditarDados, onToggleSt
 };
 
 export default ModalAcoesCliente;
-

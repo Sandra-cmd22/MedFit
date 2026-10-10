@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Historico.css";
-import BottomNav from "../components/BottomNav.jsx";
 import {
   collection,
   query,
@@ -14,6 +13,7 @@ import {
 import { db } from "../firebase.js";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatAltura, MEDIDAS_CAMPOS } from "../utils/indices.js";
 
 const Historico = () => {
   const location = useLocation();
@@ -25,7 +25,10 @@ const Historico = () => {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
-  const userName = location?.state?.userName || "Cliente";
+  const userName =
+    location?.state?.userName ||
+    localStorage.getItem("medfit_user_name") ||
+    "Cliente";
   const reloadKey = location?.state?.reloadKey || 0;
 
   console.log(userName);
@@ -535,31 +538,29 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
 
   if (loading) {
     return (
-      <div className="historico-container">
-        <div className="historico-header">
-          <button className="icon-btn" onClick={() => navigate(-1)}>
-            <span className="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 className="historico-title">Carregando...</h1>
-        </div>
-        <BottomNav />
+      <div className="page">
+        <p className="page-subtitle">Carregando histórico...</p>
       </div>
     );
   }
 
   if (!clienteData) {
     return (
-      <div className="historico-container">
-        <div className="historico-header">
-          <button className="icon-btn" onClick={() => navigate(-1)}>
-            <span className="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 className="historico-title">Histórico</h1>
+      <div className="page">
+        <div className="panel">
+          <div className="empty-state">
+            <span className="material-symbols-rounded">history</span>
+            <h3>Nenhum dado encontrado para este cliente</h3>
+            <p>Escolha um cliente na lista para ver o histórico de avaliações.</p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/clientes")}
+            >
+              Ver clientes
+            </button>
+          </div>
         </div>
-        <div className="no-data">
-          <p>Nenhum dado encontrado para este cliente.</p>
-        </div>
-        <BottomNav />
       </div>
     );
   }
@@ -577,410 +578,264 @@ ${clienteData.email ? `• Email: ${clienteData.email}` : ""}
       ? (medidas.cintura / medidas.quadril).toFixed(2)
       : null;
 
+  const rotuloMedida = (key) =>
+    MEDIDAS_CAMPOS.find((m) => m.key === key)?.label ||
+    key
+      .replace(/([A-Z])/g, " $1")
+      .trim()
+      .toLowerCase()
+      .replace(/^./, (c) => c.toUpperCase());
+
+  const temContato =
+    clienteData.endereco || clienteData.bairro || clienteData.numero ||
+    clienteData.cidade || clienteData.estado || clienteData.telefone ||
+    clienteData.cpf || clienteData.email;
+
   return (
-    <div className="historico-container">
-      <div className="historico-header">
-        <button className="icon-btn" onClick={() => navigate(-1)}>
-          <span className="material-symbols-rounded">arrow_back</span>
-        </button>
-        <h1 className="historico-title">Histórico Completo</h1>
-        <div style={{ display: "flex", gap: "8px" }}>
+    <div className="page">
+      <button type="button" className="back-link" onClick={() => navigate(-1)}>
+        <span className="material-symbols-rounded">arrow_back</span>
+        Voltar
+      </button>
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">Histórico do cliente</p>
+          <h1 className="page-title historico-nome">{clienteData.nome}</h1>
+          <p className="page-subtitle">
+            Cadastrado em {formatDate(clienteData.dataCadastro)} ·{" "}
+            {avaliacoes.length} avaliação(ões)
+          </p>
+        </div>
+        <div className="page-actions">
           <button
-            className="icon-btn"
+            type="button"
+            className="btn btn-outline"
             onClick={gerarAvaliacaoPDF}
             title="Baixar avaliação em PDF"
           >
-            <span className="material-symbols-rounded">description</span>
+            <span className="material-symbols-rounded">picture_as_pdf</span>
+            Baixar PDF
           </button>
           <button
-            className="icon-btn"
+            type="button"
+            className="btn btn-whatsapp"
             onClick={shareToWhatsApp}
             title="Compartilhar no WhatsApp (última avaliação)"
           >
             <span className="material-symbols-rounded">share</span>
+            WhatsApp
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate("/avaliacao", { state: { name: userName } })}
+          >
+            <span className="material-symbols-rounded">add</span>
+            Nova avaliação
           </button>
         </div>
       </div>
 
-      <div className="historico-content">
-        <div className="client-info">
-          <h2>{clienteData.nome}</h2>
-          <p>Cadastrado em: {formatDate(clienteData.dataCadastro)}</p>
+      <div className="stat-grid">
+        <div className="stat">
+          <p className="stat-label">IMC</p>
+          <p className="stat-value">{imc || "-"}</p>
         </div>
-
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">person</span> Dados
-            Básicos
-          </h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Idade:</span>
-              <span className="value">{clienteData.idade || "-"} anos</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Altura:</span>
-              <span className="value">{clienteData.altura || "-"} cm</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Peso:</span>
-              <span className="value">{clienteData.peso || "-"} kg</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Sexo:</span>
-              <span className="value">{clienteData.sexo || "-"}</span>
-            </div>
-          </div>
+        <div className="stat">
+          <p className="stat-label">RCQ</p>
+          <p className="stat-value">{rcq || "-"}</p>
         </div>
-
-        {(clienteData.endereco || clienteData.bairro || clienteData.numero || 
-          clienteData.cidade || clienteData.estado || clienteData.telefone || 
-          clienteData.cpf || clienteData.email) && (
-          <div className="section">
-            <h3>
-              <span className="material-symbols-rounded">contact_mail</span>{" "}
-              Contato e Endereço
-            </h3>
-            <div className="info-grid">
-              {clienteData.endereco && (
-                <div className="info-item">
-                  <span className="label">Endereço:</span>
-                  <span className="value">{clienteData.endereco}</span>
-                </div>
-              )}
-              {clienteData.bairro && (
-                <div className="info-item">
-                  <span className="label">Bairro:</span>
-                  <span className="value">{clienteData.bairro}</span>
-                </div>
-              )}
-              {clienteData.numero && (
-                <div className="info-item">
-                  <span className="label">Número:</span>
-                  <span className="value">{clienteData.numero}</span>
-                </div>
-              )}
-              {clienteData.cidade && (
-                <div className="info-item">
-                  <span className="label">Cidade:</span>
-                  <span className="value">{clienteData.cidade}</span>
-                </div>
-              )}
-              {clienteData.estado && (
-                <div className="info-item">
-                  <span className="label">Estado:</span>
-                  <span className="value">{clienteData.estado}</span>
-                </div>
-              )}
-              {clienteData.telefone && (
-                <div className="info-item">
-                  <span className="label">Telefone:</span>
-                  <span className="value">{formatTelefoneDisplay(clienteData.telefone)}</span>
-                </div>
-              )}
-              {clienteData.cpf && (
-                <div className="info-item">
-                  <span className="label">CPF:</span>
-                  <span className="value">{formatCPFDisplay(clienteData.cpf)}</span>
-                </div>
-              )}
-              {clienteData.email && (
-                <div className="info-item">
-                  <span className="label">Email:</span>
-                  <span className="value">{clienteData.email}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">analytics</span> Índices
-            Corporais
-          </h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">IMC:</span>
-              <span className="value">{imc || "-"}</span>
-            </div>
-            <div className="info-item">
-              <span className="label">RCQ:</span>
-              <span className="value">{rcq || "-"}</span>
-            </div>
-          </div>
+        <div className="stat">
+          <p className="stat-label">Peso</p>
+          <p className="stat-value">
+            {clienteData.peso || "-"}
+            {clienteData.peso && <span className="stat-unit">kg</span>}
+          </p>
         </div>
-
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">straighten</span> Medidas
-            Corporais Atuais
-          </h3>
-          <div style={{
-            marginBottom: "16px",
-            padding: "8px 12px",
-            backgroundColor: "#e8f5e9",
-            borderRadius: "8px",
-            fontSize: "12px",
-            color: "#2e7d32",
-          }}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontSize: "16px", marginRight: "4px" }}
-            >
-              check_circle
-            </span>
-            Dados atuais do cliente (última avaliação registrada)
-          </div>
-          <div className="medidas-grid">
-            <div className="medida-item">
-              <span className="label">Braço Direito:</span>
-              <span className="value">{medidas.bracoDireito || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Esquerdo:</span>
-              <span className="value">{medidas.bracoEsquerdo || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Força Direito:</span>
-              <span className="value">{medidas.bracoForcaDireito || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Braço Força Esquerdo:</span>
-              <span className="value">{medidas.bracoForcaEsquerdo || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Antebraço Direito:</span>
-              <span className="value">{medidas.antebracoDireito || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Antebraço Esquerdo:</span>
-              <span className="value">{medidas.antebracoEsquerdo || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Tórax:</span>
-              <span className="value">{medidas.torax || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Cintura:</span>
-              <span className="value">{medidas.cintura || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Quadril:</span>
-              <span className="value">{medidas.quadril || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Abdômen:</span>
-              <span className="value">{medidas.abdomen || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Proximal Direita:</span>
-              <span className="value">{medidas.coxaProximalDireita || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Proximal Esquerda:</span>
-              <span className="value">{medidas.coxaProximalEsquerda || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Distal Direita:</span>
-              <span className="value">{medidas.coxaDistalDireita || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Coxa Distal Esquerda:</span>
-              <span className="value">{medidas.coxaDistalEsquerda || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Panturrilha Direita:</span>
-              <span className="value">{medidas.panturrilhaDireita || "-"} cm</span>
-            </div>
-            <div className="medida-item">
-              <span className="label">Panturrilha Esquerda:</span>
-              <span className="value">{medidas.panturrilhaEsquerda || "-"} cm</span>
-            </div>
-          </div>
+        <div className="stat">
+          <p className="stat-label">Avaliações</p>
+          <p className="stat-value">{avaliacoes.length}</p>
         </div>
+      </div>
 
-        <div className="section">
-          <h3>
-            <span className="material-symbols-rounded">history</span>{" "}
-            Histórico de Avaliações
-          </h3>
-          {avaliacoes.length > 0 && (
-            <div style={{
-              marginBottom: "16px",
-              padding: "8px 12px",
-              backgroundColor: "#fff3cd",
-              borderRadius: "8px",
-              fontSize: "12px",
-              color: "#856404",
-            }}>
-              <span
-                className="material-symbols-rounded"
-                style={{ fontSize: "16px", marginRight: "4px" }}
-              >
-                info
-              </span>
-              {avaliacoes.length} avaliação(ões) encontrada(s). Ordenadas por data (mais recente primeiro). Clique em cada avaliação para ver os detalhes completos.
+      <div className="historico-layout">
+        <div>
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">history</span>
+                Avaliações
+              </h2>
+              <span className="panel-hint">Mais recente primeiro · clique para ver todas as medidas</span>
             </div>
-          )}
-          {avaliacoes.length === 0 && !loading && (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '40px 20px', 
-              color: '#999',
-              fontSize: '14px'
-            }}>
-              <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '12px', opacity: 0.5 }}>
-                assessment
-              </span>
-              Nenhuma avaliação encontrada
-            </div>
-          )}
-          {avaliacoes.length > 0 && (
-            <div className="avaliacoes-list">
-              {avaliacoes.map((avaliacao, index) => {
 
-                const isExpandida = avaliacaoSelecionada === avaliacao.id;
-                const medidasComValor = Object.entries(avaliacao.medidas || {})
-                  .filter(([key, valor]) => {
-                    void key;
-                    return valor && valor !== "" && valor !== "0";
-                  });
+            {avaliacoes.length === 0 ? (
+              <div className="empty-state">
+                <span className="material-symbols-rounded">assessment</span>
+                <h3>Nenhuma avaliação encontrada</h3>
+              </div>
+            ) : (
+              <table className="data-table historico-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th className="num">Idade</th>
+                    <th className="num">Peso (kg)</th>
+                    <th className="num">Medidas</th>
+                    <th className="actions">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {avaliacoes.map((avaliacao, index) => {
+                    const isExpandida = avaliacaoSelecionada === avaliacao.id;
+                    const medidasComValor = Object.entries(avaliacao.medidas || {})
+                      .filter(([key, valor]) => {
+                        void key;
+                        return valor && valor !== "" && valor !== "0";
+                      });
 
-                return (
-                  <div 
-                    key={avaliacao.id} 
-                    className="avaliacao-item"
-                    style={{
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      border: isExpandida ? '2px solid #D70C1C' : '1px solid #e5e7eb'
-                    }}
-                    onClick={() => setAvaliacaoSelecionada(isExpandida ? null : avaliacao.id)}
-                  >
-                    <div className="avaliacao-header">
-                      <span className="avaliacao-date">
-                        {formatDate(
-                          avaliacao.dataAvaliacao || avaliacao.evaluationDate
-                        )}
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {index === 0 && <span className="badge-atual">Atual</span>}
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          title="Editar avaliação"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditarAvaliacao(avaliacao, index === 0);
-                          }}
+                    return (
+                      <React.Fragment key={avaliacao.id}>
+                        <tr
+                          className={`historico-row${isExpandida ? " expandida" : ""}`}
+                          onClick={() => setAvaliacaoSelecionada(isExpandida ? null : avaliacao.id)}
                         >
-                          <span className="material-symbols-rounded">edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          title="Apagar avaliação"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleApagarAvaliacao(avaliacao, index === 0);
-                          }}
-                        >
-                          <span className="material-symbols-rounded">delete</span>
-                        </button>
-                        <span className="material-symbols-rounded" style={{ 
-                          fontSize: '18px', 
-                          color: '#666',
-                          transform: isExpandida ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s'
-                        }}>
-                          expand_more
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {isExpandida ? (
-                      // Visualização expandida com todas as medidas
-                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
-                        {(avaliacao.idade || avaliacao.peso) && (
-                          <div style={{ marginBottom: '12px', padding: '8px', background: '#f8f9fa', borderRadius: '8px' }}>
-                            {avaliacao.idade && <div style={{ fontSize: '13px', color: '#666' }}>Idade: <strong>{avaliacao.idade} anos</strong></div>}
-                            {avaliacao.peso && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Peso: <strong>{avaliacao.peso} kg</strong></div>}
-                          </div>
-                        )}
-                        <div className="medidas-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-                          {medidasComValor.map(([medida, valor]) => {
-                            const nomeMedida = medida
-                              .replace(/([A-Z])/g, " $1")
-                              .trim()
-                              .split(' ')
-                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                              .join(' ');
-                            
-                            return (
-                              <div key={medida} style={{
-                                padding: '8px',
-                                background: '#f8f9fa',
-                                borderRadius: '6px',
-                                border: '1px solid #e5e7eb'
-                              }}>
-                                <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>{nomeMedida}</div>
-                                <div style={{ fontSize: '16px', fontWeight: '600', color: '#D70C1C' }}>{valor} cm</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {medidasComValor.length === 0 && (
-                          <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px' }}>
-                            Nenhuma medida registrada nesta avaliação
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      // Visualização compacta (apenas algumas medidas)
-                      <div className="avaliacao-medidas">
-                        {medidasComValor.slice(0, 4).map(([medida, valor]) => (
-                          <div key={medida} className="medida-compact">
-                            <span className="label-compact">
-                              {medida
-                                .replace(/([A-Z])/g, " $1")
-                                .replace(/^./, (str) => str.toUpperCase())
-                                .split(' ')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                .join(' ')}
-                              :
+                          <td>
+                            <span className="historico-data">
+                              {formatDate(avaliacao.dataAvaliacao || avaliacao.evaluationDate)}
                             </span>
-                            <span className="value-compact">{valor} cm</span>
-                          </div>
-                        ))}
-                        {medidasComValor.length > 4 && (
-                          <div style={{ fontSize: '11px', color: '#666', marginTop: '4px', fontStyle: 'italic' }}>
-                            +{medidasComValor.length - 4} medidas (clique para ver todas)
-                          </div>
+                            {index === 0 && <span className="badge badge-green">Atual</span>}
+                          </td>
+                          <td className="num">{avaliacao.idade || "-"}</td>
+                          <td className="num">{avaliacao.peso || "-"}</td>
+                          <td className="num">{medidasComValor.length}</td>
+                          <td className="actions">
+                            <button
+                              type="button"
+                              className="icon-action"
+                              title="Editar avaliação"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditarAvaliacao(avaliacao, index === 0);
+                              }}
+                            >
+                              <span className="material-symbols-rounded">edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="icon-action danger"
+                              title="Apagar avaliação"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApagarAvaliacao(avaliacao, index === 0);
+                              }}
+                            >
+                              <span className="material-symbols-rounded">delete</span>
+                            </button>
+                            <span className={`material-symbols-rounded historico-chevron${isExpandida ? " aberto" : ""}`}>
+                              expand_more
+                            </span>
+                          </td>
+                        </tr>
+                        {isExpandida && (
+                          <tr className="historico-detalhe">
+                            <td colSpan="5">
+                              {medidasComValor.length === 0 ? (
+                                <p className="panel-hint">Nenhuma medida registrada nesta avaliação</p>
+                              ) : (
+                                <div className="measure-grid">
+                                  {medidasComValor.map(([medida, valor]) => (
+                                    <div className="measure" key={medida}>
+                                      <p className="measure-label">{rotuloMedida(medida)}</p>
+                                      <p className="measure-value">{valor} cm</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
                         )}
-                        {medidasComValor.length === 0 && (
-                          <div style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
-                            Clique para ver detalhes
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">straighten</span>
+                Medidas atuais
+              </h2>
+              <span className="panel-hint">Última avaliação registrada · em cm</span>
             </div>
+            <div className="measure-grid">
+              {MEDIDAS_CAMPOS.map(({ key, label }) => (
+                <div className="measure" key={key}>
+                  <p className="measure-label">{label}</p>
+                  <p className="measure-value">{medidas[key] || "-"}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside className="historico-aside">
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">person</span>
+                Dados básicos
+              </h2>
+            </div>
+            <dl className="info-list">
+              <div><dt>Idade</dt><dd>{clienteData.idade || "-"} anos</dd></div>
+              <div><dt>Altura</dt><dd>{formatAltura(clienteData.altura)}</dd></div>
+              <div><dt>Peso</dt><dd>{clienteData.peso || "-"} kg</dd></div>
+              <div><dt>Sexo</dt><dd>{clienteData.sexo || "-"}</dd></div>
+            </dl>
+          </section>
+
+          {temContato && (
+            <section className="panel">
+              <div className="panel-header">
+                <h2 className="panel-title">
+                  <span className="material-symbols-rounded">contact_mail</span>
+                  Contato e endereço
+                </h2>
+              </div>
+              <dl className="info-list">
+                {clienteData.telefone && (
+                  <div><dt>Telefone</dt><dd>{formatTelefoneDisplay(clienteData.telefone)}</dd></div>
+                )}
+                {clienteData.email && (
+                  <div><dt>Email</dt><dd>{clienteData.email}</dd></div>
+                )}
+                {clienteData.cpf && (
+                  <div><dt>CPF</dt><dd>{formatCPFDisplay(clienteData.cpf)}</dd></div>
+                )}
+                {clienteData.endereco && (
+                  <div><dt>Endereço</dt><dd>{clienteData.endereco}</dd></div>
+                )}
+                {clienteData.numero && (
+                  <div><dt>Número</dt><dd>{clienteData.numero}</dd></div>
+                )}
+                {clienteData.bairro && (
+                  <div><dt>Bairro</dt><dd>{clienteData.bairro}</dd></div>
+                )}
+                {clienteData.cidade && (
+                  <div><dt>Cidade</dt><dd>{clienteData.cidade}</dd></div>
+                )}
+                {clienteData.estado && (
+                  <div><dt>Estado</dt><dd>{clienteData.estado}</dd></div>
+                )}
+              </dl>
+            </section>
           )}
-        </div>
-
-        <div className="share-section">
-          <button className="whatsapp-btn" onClick={shareToWhatsApp}>
-            <span className="material-symbols-rounded">share</span>
-            Compartilhar no WhatsApp
-          </button>
-        </div>
+        </aside>
       </div>
-
-      <BottomNav />
     </div>
   );
 };

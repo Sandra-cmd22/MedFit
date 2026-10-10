@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BottomNav from "../components/BottomNav.jsx";
 import ModalAcoesCliente from "../components/ModalAcoesCliente.jsx";
 import "./Clientes.css";
 
 // Firebase
-import { collection, deleteDoc, doc, getDocs, updateDoc, query, where, orderBy } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { db } from "../firebase.js";
-import { calcularSituacao, buscarUltimoPagamento } from "../utils/pagamento.js";
+import { formatAltura } from "../utils/indices.js";
+
+const FILTROS = [
+  { key: "todos", label: "Todos" },
+  { key: "ativos", label: "Ativos" },
+  { key: "inativos", label: "Inativos" },
+];
 
 const Clientes = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -23,43 +29,10 @@ const Clientes = () => {
     try {
       const clientesRef = collection(db, "clientes");
       const snapshot = await getDocs(clientesRef);
-
-      // Buscar situação de pagamento para cada cliente
-      const data = await Promise.all(
-        snapshot.docs.map(async (docSnapshot) => {
-          const clienteData = {
-            id: docSnapshot.id,
-            ...docSnapshot.data(),
-          };
-
-          // Buscar último pagamento na coleção de pagamentos
-          // (mesma lógica utilizada na tela de Extrato)
-          const ultimoPagamento = await buscarUltimoPagamento(clienteData.id, {
-            getDocs,
-            collection,
-            query,
-            where,
-            orderBy,
-            db,
-          });
-
-          // Calcular situação usando a REGRA GLOBAL:
-          // - Se NÃO existe pagamento no banco → ATRASADO
-          // - Se existe pagamento e NÃO venceu → EM DIA
-          // - Se existe pagamento e venceu → ATRASADO
-          //
-          // Mesma lógica usada na tela de Extrato
-          const situacao = calcularSituacao(ultimoPagamento, "mensal");
-
-          return {
-            ...clienteData,
-            // Guardar a data real do último pagamento vinda da coleção "pagamentos"
-            ultimoPagamento: ultimoPagamento || null,
-            situacaoPagamento: situacao,
-          };
-        })
-      );
-
+      const data = snapshot.docs.map((docSnapshot) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      }));
       setClientes(data);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
@@ -73,13 +46,24 @@ const Clientes = () => {
     loadClientes();
   }, []);
 
+  const totais = useMemo(() => {
+    const inativos = clientes.filter((c) => c.status === false).length;
+    return { todos: clientes.length, ativos: clientes.length - inativos, inativos };
+  }, [clientes]);
+
   const clients = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    const base = q
+    const porNome = q
       ? clientes.filter((c) =>
           `${c.nome} ${c.sobrenome || ""}`.toLowerCase().includes(q)
         )
       : clientes;
+
+    const base = porNome.filter((c) => {
+      if (filtroStatus === "ativos") return c.status !== false;
+      if (filtroStatus === "inativos") return c.status === false;
+      return true;
+    });
 
     return base
       .slice()
@@ -91,7 +75,7 @@ const Clientes = () => {
         if (cmp !== 0) return cmp;
         return String(a?.id || "").localeCompare(String(b?.id || ""));
       });
-  }, [searchTerm, clientes]);
+  }, [searchTerm, filtroStatus, clientes]);
 
   const goToHome = (c) => {
     const fullName = `${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`;
@@ -171,128 +155,143 @@ const Clientes = () => {
     }
   };
 
-
   return (
-    <div className="clientes-container">
-      <div className="clientes-header">
-        <button className="icon-btn" onClick={() => navigate(-1)}>
-          <span
-            className="material-symbols-rounded"
-            style={{ fontVariationSettings: '"wght" 300' }}
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Clientes</h1>
+          <p className="page-subtitle">
+            {totais.todos} clientes cadastrados · {totais.ativos} ativos
+          </p>
+        </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn btn-outline btn-icon"
+            onClick={loadClientes}
+            disabled={loading}
+            title="Recarregar lista"
           >
-            arrow_back
-          </span>
-        </button>
-        <h1 className="clientes-title">Clientes</h1>
-        <button className="icon-btn" onClick={loadClientes} disabled={loading}>
-          <span
-            className="material-symbols-rounded"
-            style={{ fontVariationSettings: '"wght" 300' }}
+            <span className="material-symbols-rounded">refresh</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate("/cadastro")}
           >
-            {loading ? "refresh" : "refresh"}
-          </span>
-        </button>
+            <span className="material-symbols-rounded">person_add</span>
+            Cadastrar cliente
+          </button>
+        </div>
       </div>
 
-      <label className="search-label" htmlFor="search">
-        Buscar Cliente por Nome
-      </label>
-      <div className="search-box">
-        <span
-          className="material-symbols-rounded search-icon"
-          style={{ fontVariationSettings: '"wght" 300' }}
-        >
-          search
-        </span>
-        <input
-          id="search"
-          className="search-input"
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Digite o nome"
-        />
-      </div>
+      <div className="panel clientes-panel">
+        <div className="clientes-toolbar">
+          <div className="search-input">
+            <span className="material-symbols-rounded">search</span>
+            <input
+              id="search"
+              className="input"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar cliente por nome"
+            />
+          </div>
 
-      <div className="table-scroll">
-        <table className="table">
+          <div className="segmented">
+            {FILTROS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className={`segmented-item${filtroStatus === f.key ? " active" : ""}`}
+                onClick={() => setFiltroStatus(f.key)}
+              >
+                {f.label}
+                <span className="segmented-count">{totais[f.key]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <table className="data-table">
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Idade</th>
+              <th className="num">Idade</th>
               <th>Sexo</th>
-              <th>Altura</th>
-              <th>Peso</th>
+              <th className="num">Altura</th>
+              <th className="num">Peso (kg)</th>
               <th>Status</th>
-              <th>Situação</th>
-              <th className="acoes-header">Ações</th>
+              <th className="actions">Ações</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan="8"
-                  style={{ textAlign: "center", padding: "20px" }}
-                >
+                <td colSpan="7" className="clientes-table-msg">
                   Carregando clientes...
                 </td>
               </tr>
             ) : clients.length === 0 ? (
               <tr>
-                <td
-                  colSpan="8"
-                  style={{ textAlign: "center", padding: "20px" }}
-                >
+                <td colSpan="7" className="clientes-table-msg">
                   Nenhum cliente encontrado
                 </td>
               </tr>
             ) : (
               clients.map((c) => {
                 const isInativo = c.status === false;
+                const nomeCompleto = `${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`;
                 return (
                   <tr key={c.id} className={isInativo ? "cliente-inativo" : ""}>
                     <td>
-                      <button 
-                        className={`name-pill ${isInativo ? "name-pill-inativo" : ""}`} 
+                      <button
+                        type="button"
+                        className="cliente-nome"
                         onClick={() => goToHome(c)}
+                        title="Abrir painel do cliente"
                       >
-                        {`${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`.toLowerCase()}
+                        <span className="cliente-avatar">
+                          {(c.nome || "?").trim().charAt(0).toUpperCase()}
+                        </span>
+                        {nomeCompleto.toLowerCase()}
                       </button>
                     </td>
-                    <td className={isInativo ? "texto-inativo" : ""}>{c.idade}</td>
-                    <td className={isInativo ? "texto-inativo" : ""}>{c.sexo}</td>
-                    <td className={isInativo ? "texto-inativo" : ""}>{c.altura}</td>
-                    <td className={isInativo ? "texto-inativo" : ""}>{c.peso}</td>
+                    <td className="num">{c.idade || "-"}</td>
+                    <td>{c.sexo || "-"}</td>
+                    <td className="num">{formatAltura(c.altura)}</td>
+                    <td className="num">{c.peso || "-"}</td>
                     <td>
-                      <span className={`status-badge ${isInativo ? "status-inativo" : "status-ativo"}`}>
+                      <span className={`badge ${isInativo ? "badge-gray" : "badge-green"}`}>
                         {isInativo ? "Inativo" : "Ativo"}
                       </span>
                     </td>
-                    <td>
-                      <span className={`situacao-badge ${c.situacaoPagamento === "ATRASADO" ? "situacao-atrasado" : "situacao-em-dia"}`}>
-                        {c.situacaoPagamento || "EM DIA"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="acoes">
-                        <button
-                          type="button"
-                          className="acao-btn editar"
-                          onClick={() => handleEditClick(c)}
-                        >
-                          <span className="material-symbols-rounded">edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="acao-btn apagar"
-                          onClick={() => handleDelete(c)}
-                        >
-                          <span className="material-symbols-rounded">
-                            delete
-                          </span>
-                        </button>
-                      </div>
+                    <td className="actions">
+                      <button
+                        type="button"
+                        className="icon-action"
+                        onClick={() => goToHome(c)}
+                        title="Abrir painel"
+                      >
+                        <span className="material-symbols-rounded">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-action"
+                        onClick={() => handleEditClick(c)}
+                        title="Editar ou alterar status"
+                      >
+                        <span className="material-symbols-rounded">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-action danger"
+                        onClick={() => handleDelete(c)}
+                        title="Apagar cliente"
+                      >
+                        <span className="material-symbols-rounded">delete</span>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -312,8 +311,6 @@ const Clientes = () => {
         onEditarDados={handleEditarDados}
         onToggleStatus={toggleClientStatus}
       />
-
-      <BottomNav />
     </div>
   );
 };

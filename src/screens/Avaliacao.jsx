@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase.js";
-import BottomNav from "../components/BottomNav.jsx";
+import {
+  computeBMI,
+  computeRCQ,
+  formatAltura,
+  getBMICategory,
+  getRCQCategory,
+  MEDIDAS_CAMPOS,
+} from "../utils/indices.js";
 import "./Avaliacao.css";
 import {
   addDoc,
@@ -462,520 +469,311 @@ const Avaliacao = () => {
     }
   };
 
-  return (
-    <div className="container-av">
-      <div className="scroll-view-av">
-        <div className="header-av">
-          <button className="back-btn-av" onClick={() => navigate(-1)}>
-            <span
-              className="material-symbols-rounded"
-              style={{ fontVariationSettings: '"wght" 300' }}
+  const isEditing = Boolean(avaliacaoIdFromState);
+  const toNumber = (value) => parseFloat((value ?? "").toString().replace(",", "."));
+  const imcPrevisto = computeBMI(toNumber(dadosBasicos.peso), toNumber(clienteInfo?.altura));
+  const rcqPrevisto = computeRCQ(toNumber(medidas.cintura), toNumber(medidas.quadril));
+  const imcCategoria = getBMICategory(imcPrevisto);
+  const rcqCategoria = getRCQCategory(rcqPrevisto, clienteInfo?.sexo);
+
+  if (!personName) {
+    return (
+      <div className="page">
+        <div className="panel">
+          <div className="empty-state">
+            <span className="material-symbols-rounded">assignment</span>
+            <h3>Nenhum cliente selecionado</h3>
+            <p>Escolha um cliente na lista para registrar uma avaliação.</p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/clientes")}
             >
-              arrow_back
-            </span>
-          </button>
-          <h1 className="title-av">Avaliação</h1>
-        </div>
-        {personName && <div className="person-name">{personName}</div>}
-
-        <div className="section-title-av">Dados Básicos</div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="idade">
-              Idade
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="idade"
-              inputMode="numeric"
-              min="1"
-              max="120"
-              value={dadosBasicos.idade}
-              onChange={(e) =>
-                handleDadosBasicosChange("idade", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="peso">
-              Peso (kg)
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="peso"
-              inputMode="decimal"
-              step="0.1"
-              min="1"
-              max="300"
-              value={dadosBasicos.peso}
-              onChange={(e) => handleDadosBasicosChange("peso", e.target.value)}
-            />
+              Ver clientes
+            </button>
           </div>
         </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="plano">
-              Plano semanal
-            </label>
-            <select
-              id="plano"
-              className="input-av"
-              value={plano}
-              onChange={(e) => setPlano(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              <option value="3">3 dias por semana</option>
-              <option value="5">5 dias por semana</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="section-title-av">Informações pessoais</div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="telefone">
-              Telefone
-            </label>
-            <input
-              className="input-av"
-              type="tel"
-              id="telefone"
-              placeholder="(00) 00000-0000"
-              maxLength="15"
-              value={dadosPessoais.telefone}
-              onChange={(e) =>
-                handleDadosPessoaisChange(
-                  "telefone",
-                  formatTelefone(e.target.value)
-                )
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="cpf">
-              CPF
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="cpf"
-              placeholder="000.000.000-00"
-              maxLength="14"
-              value={dadosPessoais.cpf}
-              onChange={(e) =>
-                handleDadosPessoaisChange("cpf", formatCPF(e.target.value))
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="email">
-              Email
-            </label>
-            <input
-              className="input-av"
-              type="email"
-              id="email"
-              placeholder="exemplo@email.com"
-              value={dadosPessoais.email}
-              onChange={(e) =>
-                handleDadosPessoaisChange("email", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av" style={{ width: "100%" }}>
-            <label className="label-av" htmlFor="endereco">
-              Endereço
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="endereco"
-              value={dadosPessoais.endereco}
-              onChange={(e) =>
-                handleDadosPessoaisChange("endereco", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="bairro">
-              Bairro
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="bairro"
-              value={dadosPessoais.bairro}
-              onChange={(e) =>
-                handleDadosPessoaisChange("bairro", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="numero">
-              Número
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="numero"
-              value={dadosPessoais.numero}
-              onChange={(e) =>
-                handleDadosPessoaisChange("numero", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="cidade">
-              Cidade
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="cidade"
-              value={dadosPessoais.cidade}
-              onChange={(e) =>
-                handleDadosPessoaisChange("cidade", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="estado">
-              Estado
-            </label>
-            <input
-              className="input-av"
-              type="text"
-              id="estado"
-              maxLength="2"
-              placeholder="Ex: SP"
-              value={dadosPessoais.estado}
-              onChange={(e) =>
-                handleDadosPessoaisChange("estado", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="section-title-av">Medidas</div>
-
-        {/* Medidas principais - Tórax, Abdômen, Cintura, Quadril */}
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="torax">
-              Tórax
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="torax"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.torax}
-              onChange={(e) => handleMedidaChange("torax", e.target.value)}
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="abdomen">
-              Abdômen
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="abdomen"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.abdomen}
-              onChange={(e) => handleMedidaChange("abdomen", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="cintura">
-              Cintura
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="cintura"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.cintura}
-              onChange={(e) => handleMedidaChange("cintura", e.target.value)}
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="quadril">
-              Quadril
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="quadril"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.quadril}
-              onChange={(e) => handleMedidaChange("quadril", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Demais medidas */}
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-direito">
-              Braço <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="braco-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.bracoDireito}
-              onChange={(e) =>
-                handleMedidaChange("bracoDireito", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-esquerdo">
-              Braço <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="braco-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.bracoEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("bracoEsquerdo", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-forca-direito">
-              Braço <span className="paren">(força)</span>{" "}
-              <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="braco-forca-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.bracoForcaDireito}
-              onChange={(e) =>
-                handleMedidaChange("bracoForcaDireito", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="braco-forca-esquerdo">
-              Braço <span className="paren">(força)</span>{" "}
-              <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="braco-forca-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.bracoForcaEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("bracoForcaEsquerdo", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="antebraco-direito">
-              Antebraço <span className="paren">(direito)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="antebraco-direito"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.antebracoDireito}
-              onChange={(e) =>
-                handleMedidaChange("antebracoDireito", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="antebraco-esquerdo">
-              Antebraço <span className="paren">(esquerdo)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="antebraco-esquerdo"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.antebracoEsquerdo}
-              onChange={(e) =>
-                handleMedidaChange("antebracoEsquerdo", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-proximal-direita">
-              Coxa <span className="paren">(proximal) (direita)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="coxa-proximal-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.coxaProximalDireita}
-              onChange={(e) =>
-                handleMedidaChange("coxaProximalDireita", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-proximal-esquerda">
-              Coxa <span className="paren">(proximal) (esquerda)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="coxa-proximal-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.coxaProximalEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("coxaProximalEsquerda", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-distal-direita">
-              Coxa <span className="paren">(distal) (direita)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="coxa-distal-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.coxaDistalDireita}
-              onChange={(e) =>
-                handleMedidaChange("coxaDistalDireita", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="coxa-distal-esquerda">
-              Coxa <span className="paren">(distal) (esquerda)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="coxa-distal-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.coxaDistalEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("coxaDistalEsquerda", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="row-av">
-          <div className="col-av">
-            <label className="label-av" htmlFor="panturrilha-direita">
-              Panturrilha <span className="paren">(direita)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="panturrilha-direita"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.panturrilhaDireita}
-              onChange={(e) =>
-                handleMedidaChange("panturrilhaDireita", e.target.value)
-              }
-            />
-          </div>
-          <div className="col-av">
-            <label className="label-av" htmlFor="panturrilha-esquerda">
-              Panturrilha <span className="paren">(esquerda)</span>
-            </label>
-            <input
-              className="input-av"
-              type="number"
-              id="panturrilha-esquerda"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={medidas.panturrilhaEsquerda}
-              onChange={(e) =>
-                handleMedidaChange("panturrilhaEsquerda", e.target.value)
-              }
-            />
-          </div>
-        </div>
-
-        <button
-          className="primary-btn-av"
-          type="button"
-          onClick={handleAtualizar}
-        >
-          Atualizar
-        </button>
       </div>
-      <BottomNav />
+    );
+  }
+
+  const campo = (field, label, props = {}) => (
+    <div className="field" key={field}>
+      <label htmlFor={`av-${field}`}>{label}</label>
+      <input
+        className="input"
+        type="number"
+        id={`av-${field}`}
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        value={medidas[field]}
+        onChange={(e) => handleMedidaChange(field, e.target.value)}
+        {...props}
+      />
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <button type="button" className="back-link" onClick={() => navigate(-1)}>
+        <span className="material-symbols-rounded">arrow_back</span>
+        Voltar
+      </button>
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">
+            {isEditing ? "Editando avaliação" : "Nova avaliação"}
+          </p>
+          <h1 className="page-title avaliacao-nome">{personName}</h1>
+          <p className="page-subtitle">
+            {isEditing
+              ? "Altere os valores e salve para atualizar esta avaliação."
+              : "Registre as medidas de hoje. Os dados do cliente são atualizados ao salvar."}
+          </p>
+        </div>
+      </div>
+
+      <div className="avaliacao-layout">
+        <div>
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">person</span>
+                Dados básicos
+              </h2>
+            </div>
+            <div className="form-grid cols-3">
+              <div className="field">
+                <label htmlFor="idade">Idade</label>
+                <input
+                  className="input"
+                  type="number"
+                  id="idade"
+                  inputMode="numeric"
+                  min="1"
+                  max="120"
+                  value={dadosBasicos.idade}
+                  onChange={(e) =>
+                    handleDadosBasicosChange("idade", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="peso">
+                  Peso <span className="field-unit">(kg)</span>
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  id="peso"
+                  inputMode="decimal"
+                  step="0.1"
+                  min="1"
+                  max="300"
+                  value={dadosBasicos.peso}
+                  onChange={(e) => handleDadosBasicosChange("peso", e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="plano">Plano semanal</label>
+                <select
+                  id="plano"
+                  className="input"
+                  value={plano}
+                  onChange={(e) => setPlano(e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  <option value="3">3 dias por semana</option>
+                  <option value="5">5 dias por semana</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">straighten</span>
+                Medidas
+              </h2>
+              <span className="panel-hint">Valores em centímetros</span>
+            </div>
+            <div className="form-grid">
+              {MEDIDAS_CAMPOS.map(({ key, label }) => campo(key, label))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <h2 className="panel-title">
+                <span className="material-symbols-rounded">contact_mail</span>
+                Contato e endereço
+              </h2>
+            </div>
+            <div className="form-grid">
+              <div className="field">
+                <label htmlFor="telefone">Telefone</label>
+                <input
+                  className="input"
+                  type="tel"
+                  id="telefone"
+                  placeholder="(00) 00000-0000"
+                  maxLength="15"
+                  value={dadosPessoais.telefone}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange(
+                      "telefone",
+                      formatTelefone(e.target.value)
+                    )
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="cpf">CPF</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="cpf"
+                  placeholder="000.000.000-00"
+                  maxLength="14"
+                  value={dadosPessoais.cpf}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("cpf", formatCPF(e.target.value))
+                  }
+                />
+              </div>
+              <div className="field span-2">
+                <label htmlFor="email">Email</label>
+                <input
+                  className="input"
+                  type="email"
+                  id="email"
+                  placeholder="exemplo@email.com"
+                  value={dadosPessoais.email}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("email", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field span-2">
+                <label htmlFor="endereco">Endereço</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="endereco"
+                  value={dadosPessoais.endereco}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("endereco", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="numero">Número</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="numero"
+                  value={dadosPessoais.numero}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("numero", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="bairro">Bairro</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="bairro"
+                  value={dadosPessoais.bairro}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("bairro", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field span-2">
+                <label htmlFor="cidade">Cidade</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="cidade"
+                  value={dadosPessoais.cidade}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("cidade", e.target.value)
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="estado">Estado</label>
+                <input
+                  className="input"
+                  type="text"
+                  id="estado"
+                  maxLength="2"
+                  placeholder="Ex: SP"
+                  value={dadosPessoais.estado}
+                  onChange={(e) =>
+                    handleDadosPessoaisChange("estado", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside className="avaliacao-resumo">
+          <div className="panel">
+            <h2 className="panel-title">
+              <span className="material-symbols-rounded">monitoring</span>
+              Resumo
+            </h2>
+
+            <div className="resumo-item">
+              <p className="stat-label">IMC</p>
+              <p className="resumo-valor">{imcPrevisto ?? "-"}</p>
+              <p className="resumo-cat">
+                {imcCategoria || "Informe o peso (altura do cadastro)"}
+              </p>
+            </div>
+
+            <div className="resumo-item">
+              <p className="stat-label">RCQ</p>
+              <p className="resumo-valor">{rcqPrevisto ?? "-"}</p>
+              <p className="resumo-cat">
+                {rcqCategoria || "Informe cintura e quadril"}
+              </p>
+            </div>
+
+            <dl className="resumo-dados">
+              <div>
+                <dt>Altura</dt>
+                <dd>{formatAltura(clienteInfo?.altura)}</dd>
+              </div>
+              <div>
+                <dt>Sexo</dt>
+                <dd>{clienteInfo?.sexo || "-"}</dd>
+              </div>
+            </dl>
+
+            <button
+              className="btn btn-primary resumo-salvar"
+              type="button"
+              onClick={handleAtualizar}
+            >
+              <span className="material-symbols-rounded">check</span>
+              {isEditing ? "Atualizar avaliação" : "Salvar avaliação"}
+            </button>
+            <button
+              className="btn btn-outline resumo-salvar"
+              type="button"
+              onClick={() => navigate(-1)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };

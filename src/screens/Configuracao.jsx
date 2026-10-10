@@ -1,14 +1,16 @@
 import React from 'react';
-import BottomNav from '../components/BottomNav.jsx';
 
 const Configuracao = () => {
 	return (
-		<div style={{ minHeight: '100vh', padding: 16, fontFamily: 'Poppins, sans-serif' }}>
-			<h1 style={{ margin: 0 }}>Configurações</h1>
-			<p>Em breve: preferências do app e do usuário.</p>
-			<BottomNav />
+		<div className="page">
+			<div className="page-header">
+				<div>
+					<h1 className="page-title">Configurações</h1>
+					<p className="page-subtitle">Em breve: preferências do app e do usuário.</p>
+				</div>
+			</div>
 		</div>
 	);
 };
 
-export default Configuracao; 
+export default Configuracao;

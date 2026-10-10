@@ -1,96 +1,32 @@
-import {
-  CategoryScale,
-  Chart as ChartJS,
-  Filler,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-} from "chart.js";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // Importe useNavigate
+import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase.js";
-import BottomNav from "../components/BottomNav.jsx";
+import {
+  computeBMI,
+  computeRCQ,
+  formatAltura,
+  getBMICategory,
+  getRCQCategory,
+  MEDIDAS_CAMPOS,
+} from "../utils/indices.js";
 import "./Home.css";
 
-// Registrar componentes do Chart.js
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+const BADGE_POR_CATEGORIA = {
+  "Peso normal": "badge-green",
+  "Abaixo do peso": "badge-amber",
+  Sobrepeso: "badge-amber",
+  "Baixo risco": "badge-green",
+  "Risco moderado": "badge-amber",
+};
 
-const STORAGE_KEY = "medfit_quarterly";
+const badgeClass = (categoria) => BADGE_POR_CATEGORIA[categoria] || "badge-red";
 
-function computeBMI(peso, altura) {
-  if (
-    !peso ||
-    !altura ||
-    Number.isNaN(peso) ||
-    Number.isNaN(altura) ||
-    altura <= 0
-  )
-    return null;
-  const h = altura > 3 ? altura / 100 : altura;
-  const bmi = peso / (h * h);
-  return Math.round(bmi * 10) / 10; // Arredonda para 1 casa decimal
-}
-
-function computeRCQ(cintura, quadril) {
-  if (
-    !cintura ||
-    !quadril ||
-    Number.isNaN(cintura) ||
-    Number.isNaN(quadril) ||
-    quadril <= 0
-  )
-    return null;
-  const rcq = cintura / quadril;
-  return Math.round(rcq * 100) / 100; // Arredonda para 2 casas decimais
-}
-
-function getBMICategory(bmi) {
-  if (bmi === null) return null;
-  if (bmi < 18.5) return "Abaixo do peso";
-  if (bmi < 25) return "Peso normal";
-  if (bmi < 30) return "Sobrepeso";
-  if (bmi < 35) return "Obesidade grau I";
-  if (bmi < 40) return "Obesidade grau II";
-  return "Obesidade grau III";
-}
-
-function getRCQCategory(rcq, sexo) {
-  if (rcq === null) return null;
-  if (sexo === "Masculino") {
-    if (rcq < 0.85) return "Baixo risco";
-    if (rcq < 0.95) return "Risco moderado";
-    return "Alto risco";
-  } else {
-    if (rcq < 0.8) return "Baixo risco";
-    if (rcq < 0.85) return "Risco moderado";
-    return "Alto risco";
-  }
-}
-
-// function polarToCartesian(cx, cy, r, angleDeg) {
-//   const rad = (Math.PI / 180) * angleDeg;
-//   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-// }
-
-// function describeArc(cx, cy, r, startAngle, endAngle) {
-//   const start = polarToCartesian(cx, cy, r, endAngle);
-//   const end = polarToCartesian(cx, cy, r, startAngle);
-//   const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-//   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-// }
+const formatDate = (value) => {
+  if (!value) return null;
+  const date = value.toDate ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("pt-BR");
+};
 
 const Home = () => {
   const location = useLocation();
@@ -177,6 +113,16 @@ const Home = () => {
       ? localStorage.getItem("medfit_user_name") || "Home"
       : "Home");
 
+  const handleRefresh = () => {
+    const nome =
+      typeof window !== "undefined"
+        ? localStorage.getItem("medfit_user_name") || "Home"
+        : "Home";
+    if (nome && nome !== "Home") {
+      fetchClienteData(nome, true);
+    }
+  };
+
   // Usar dados do cliente se disponível, senão usar dados da navegação
   const peso = clienteData?.peso || location?.state?.newEntry?.peso;
   const altura = clienteData?.altura || location?.state?.newEntry?.altura;
@@ -193,143 +139,183 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="home-container">
-        <h1 className="home-title">Carregando...</h1>
-        <BottomNav />
+      <div className="page">
+        <p className="page-subtitle">Carregando dados do cliente...</p>
       </div>
     );
   }
 
+  if (!userName || userName === "Home") {
+    return (
+      <div className="page">
+        <div className="panel">
+          <div className="empty-state">
+            <span className="material-symbols-rounded">person_search</span>
+            <h3>Nenhum cliente selecionado</h3>
+            <p>Escolha um cliente na lista para ver o painel de avaliação.</p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/clientes")}
+            >
+              Ver clientes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ultimaAvaliacao = formatDate(clienteData?.dataUltimaAvaliacao);
+  const dataCadastro = formatDate(clienteData?.dataCadastro);
+  const medidasCliente = clienteData?.medidas || {};
+
   return (
-    <div className="home-container">
-      {/* Faixa preta com nome e informações */}
-      <div className="home-header">
-        <div className="home-client-info">
-          <h1 className="home-client-name">{userName}</h1>
-          {clienteData && (
-            <div className="home-client-details">
-              <div>Idade: {clienteData.idade || "-"} anos</div>
-              <div>Altura: {clienteData.altura || "-"} cm</div>
-              <div>Peso: {clienteData.peso || "-"} kg</div>
-              <div>Sexo: {clienteData.sexo || "-"}</div>
-            </div>
-          )}
-          {updating && (
-            <div className="updating-indicator">
-              <span
-                className="material-symbols-rounded"
-                style={{ fontSize: "14px", animation: "spin 1s linear infinite" }}
-              >
-                refresh
-              </span>
-              <span className="updating-text">Atualizando...</span>
-            </div>
-          )}
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">Painel do cliente</p>
+          <h1 className="page-title home-client-name">{userName}</h1>
+          <p className="page-subtitle">
+            {ultimaAvaliacao
+              ? `Última avaliação em ${ultimaAvaliacao}`
+              : dataCadastro
+              ? `Cliente desde ${dataCadastro}`
+              : "Sem avaliações registradas"}
+            {updating && " · Atualizando..."}
+          </p>
         </div>
-      </div>
-
-      {/* Conteúdo centralizado */}
-      <div className="home-content">
-
-        <div className="cards-column">
-        <div className="card">
-          <div className="card-header">IMC</div>
-          <div className="card-value" style={{ color: "#000" }}>
-            {imcAtual ?? "-"}
-          </div>
-          {bmiCategory && (
-            <div
-              className="card-category"
-              style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
-            >
-              {bmiCategory}
-            </div>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="card-header">RCQ</div>
-          <div className="card-value" style={{ color: "#000" }}>
-            {rcqAtual ?? "-"}
-          </div>
-          {rcqCategory && (
-            <div
-              className="card-category"
-              style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
-            >
-              {rcqCategory}
-            </div>
-          )}
-          {cintura && quadril && (
-            <div
-              className="card-relation"
-              style={{ fontSize: "10px", color: "#999", marginTop: "2px" }}
-            >
-              {cintura}cm / {quadril}cm
-            </div>
-          )}
-        </div>
-        </div>
-
-        <button
-        className="primary-btn"
-        type="button"
-        onClick={() => {
-          navigate("/avaliacao", { state: { name: userName } });
-        }}
-      >
-        Adicionar nova Avaliação
-        </button>
-
-        <div style={{ display: "flex", gap: "8px", marginTop: "16px", width: "100%", boxSizing: "border-box" }}>
-        <button
-          className="secondary-btn"
-          type="button"
-          onClick={() => {
-            navigate("/historico", { state: { clienteData, userName } });
-          }}
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          Ver Histórico completo
-        </button>
-
-        <button
-          className="secondary-btn"
-          type="button"
-          onClick={() => {
-            const userName =
-              typeof window !== "undefined"
-                ? localStorage.getItem("medfit_user_name") || "Home"
-                : "Home";
-            if (userName && userName !== "Home") {
-              fetchClienteData(userName, true);
-            }
-          }}
-          disabled={updating}
-          style={{
-            flexShrink: 0,
-            width: "52px",
-            minWidth: "52px",
-            padding: "0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#000",
-            borderColor: "#000",
-          }}
-          title="Atualizar dados"
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: "20px", color: "#000" }}
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn btn-outline btn-icon"
+            onClick={handleRefresh}
+            disabled={updating}
+            title="Atualizar dados"
           >
-            refresh
-          </span>
-        </button>
+            <span className="material-symbols-rounded">refresh</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              navigate("/historico", { state: { clienteData, userName } });
+            }}
+          >
+            <span className="material-symbols-rounded">history</span>
+            Ver histórico
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              navigate("/avaliacao", { state: { name: userName } });
+            }}
+          >
+            <span className="material-symbols-rounded">add</span>
+            Nova avaliação
+          </button>
         </div>
       </div>
 
-      <BottomNav />
+      <div className="stat-grid">
+        <div className="stat">
+          <p className="stat-label">IMC</p>
+          <p className="stat-value">{imcAtual ?? "-"}</p>
+          <div className="stat-foot">
+            {bmiCategory ? (
+              <span className={`badge ${badgeClass(bmiCategory)}`}>{bmiCategory}</span>
+            ) : (
+              "Informe peso e altura"
+            )}
+          </div>
+        </div>
+
+        <div className="stat">
+          <p className="stat-label">RCQ</p>
+          <p className="stat-value">{rcqAtual ?? "-"}</p>
+          <div className="stat-foot">
+            {rcqCategory ? (
+              <span className={`badge ${badgeClass(rcqCategory)}`}>{rcqCategory}</span>
+            ) : (
+              "Informe cintura e quadril"
+            )}
+            {cintura && quadril && (
+              <span className="home-rcq-relation">
+                {cintura} cm / {quadril} cm
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="stat">
+          <p className="stat-label">Peso</p>
+          <p className="stat-value">
+            {peso || "-"}
+            {peso && <span className="stat-unit">kg</span>}
+          </p>
+          <div className="stat-foot">Registrado na última avaliação</div>
+        </div>
+
+        <div className="stat">
+          <p className="stat-label">Altura</p>
+          <p className="stat-value">{formatAltura(altura)}</p>
+          <div className="stat-foot">Informada no cadastro</div>
+        </div>
+      </div>
+
+      <div className="home-columns">
+        <section className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">
+              <span className="material-symbols-rounded">straighten</span>
+              Medidas atuais
+            </h2>
+            <span className="panel-hint">Valores em centímetros</span>
+          </div>
+          <div className="measure-grid">
+            {MEDIDAS_CAMPOS.map(({ key, label }) => (
+              <div className="measure" key={key}>
+                <p className="measure-label">{label}</p>
+                <p className="measure-value">{medidasCliente[key] || "-"}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">
+              <span className="material-symbols-rounded">badge</span>
+              Dados do cliente
+            </h2>
+          </div>
+          <dl className="home-details">
+            <div>
+              <dt>Idade</dt>
+              <dd>{clienteData?.idade ? `${clienteData.idade} anos` : "-"}</dd>
+            </div>
+            <div>
+              <dt>Sexo</dt>
+              <dd>{clienteData?.sexo || "-"}</dd>
+            </div>
+            <div>
+              <dt>Telefone</dt>
+              <dd>{clienteData?.telefone || "-"}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{clienteData?.email || "-"}</dd>
+            </div>
+            <div>
+              <dt>Cidade</dt>
+              <dd>
+                {[clienteData?.cidade, clienteData?.estado].filter(Boolean).join(" / ") || "-"}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </div>
     </div>
   );
 };
