@@ -10,6 +10,8 @@ import {
   getRCQCategory,
   MEDIDAS_CAMPOS,
 } from "../utils/indices.js";
+import { criarCarregadorAluno } from "../utils/carregadorAluno.js";
+import EvolucaoCorporal from "../components/EvolucaoCorporal.jsx";
 import "./Home.css";
 
 const BADGE_POR_CATEGORIA = {
@@ -28,16 +30,84 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("pt-BR");
 };
 
+const formatDateOuTraco = (value) => formatDate(value) || "-";
+
+const dataDaAvaliacao = (av) => av.evaluationDate || av.startDate || av.endDate || "";
+
+const buscarAvaliacoes = async (clienteNome, clienteId) => {
+  const avaliacoesRef = collection(db, "avaliacoes");
+  const consultas = [query(avaliacoesRef, where("clienteNome", "==", clienteNome))];
+  if (clienteId) {
+    consultas.push(query(avaliacoesRef, where("clienteId", "==", clienteId)));
+  }
+
+  const porId = new Map();
+  const snapshots = await Promise.all(consultas.map((q) => getDocs(q)));
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((d) => {
+      if (!porId.has(d.id)) porId.set(d.id, { id: d.id, ...d.data() });
+    });
+  });
+
+  return [...porId.values()].sort(
+    (a, b) => new Date(dataDaAvaliacao(b)) - new Date(dataDaAvaliacao(a))
+  );
+};
+
+const buscarCliente = async (userName) => {
+  // Busca cliente pelo campo "nome"
+  const clientesRef = collection(db, "clientes");
+  let querySnapshot = await getDocs(
+    query(clientesRef, where("nome", "==", userName))
+  );
+
+  // Fallback: nome exibido pode vir como "Nome Sobrenome"
+  if (querySnapshot.empty && userName.includes(" ")) {
+    const [nome, ...rest] = userName.split(" ").filter(Boolean);
+    const sobrenome = rest.join(" ").trim();
+    if (nome && sobrenome) {
+      querySnapshot = await getDocs(
+        query(
+          clientesRef,
+          where("nome", "==", nome),
+          where("sobrenome", "==", sobrenome)
+        )
+      );
+    }
+  }
+
+  if (querySnapshot.empty) return null;
+  const clienteDoc = querySnapshot.docs[0];
+  return { id: clienteDoc.id, data: clienteDoc.data() };
+};
+
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [clienteData, setClienteData] = useState(null);
+  const [avaliacoes, setAvaliacoes] = useState([]);
+  const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
+  const [erroAvaliacoes, setErroAvaliacoes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  const [carregador] = useState(() =>
+    criarCarregadorAluno({
+      buscarCliente,
+      buscarAvaliacoes,
+      aplicar: (estado) => {
+        if ("cliente" in estado) setClienteData(estado.cliente);
+        if ("avaliacoes" in estado) setAvaliacoes(estado.avaliacoes);
+        if ("carregandoAvaliacoes" in estado) setCarregandoAvaliacoes(estado.carregandoAvaliacoes);
+        if ("erroAvaliacoes" in estado) setErroAvaliacoes(estado.erroAvaliacoes);
+      },
+    })
+  );
 
   // Função para buscar dados atualizados do cliente
   const fetchClienteData = async (userName, isUpdate = false) => {
     if (!userName || userName === "Home") {
+      carregador.cancelar();
       setLoading(false);
       return;
     }
@@ -46,40 +116,19 @@ const Home = () => {
       setUpdating(true);
     }
 
-    try {
-      // Busca cliente pelo campo "nome"
-      const clientesRef = collection(db, "clientes");
-      let querySnapshot = await getDocs(
-        query(clientesRef, where("nome", "==", userName))
+    const resultado = await carregador.carregar(userName);
+    if (resultado.status === "obsoleta") return;
+
+    if (resultado.status === "erro") {
+      console.error(
+        resultado.etapa === "cliente"
+          ? "Erro ao carregar dados do cliente:"
+          : "Erro ao carregar avaliações do cliente:",
+        resultado.error
       );
-
-      // Fallback: nome exibido pode vir como "Nome Sobrenome"
-      if (querySnapshot.empty && userName.includes(" ")) {
-        const [nome, ...rest] = userName.split(" ").filter(Boolean);
-        const sobrenome = rest.join(" ").trim();
-        if (nome && sobrenome) {
-          querySnapshot = await getDocs(
-            query(
-              clientesRef,
-              where("nome", "==", nome),
-              where("sobrenome", "==", sobrenome)
-            )
-          );
-        }
-      }
-
-      if (!querySnapshot.empty) {
-        const cliente = querySnapshot.docs[0].data();
-        setClienteData(cliente);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados do cliente:", error);
-    } finally {
-      setLoading(false);
-      if (isUpdate) {
-        setUpdating(false);
-      }
     }
+    setLoading(false);
+    setUpdating(false);
   };
   // Buscar dados do cliente
   useEffect(() => {
@@ -263,6 +312,13 @@ const Home = () => {
           <div className="stat-foot">Informada no cadastro</div>
         </div>
       </div>
+
+      <EvolucaoCorporal
+        avaliacoes={avaliacoes}
+        formatDate={formatDateOuTraco}
+        carregando={carregandoAvaliacoes}
+        erro={erroAvaliacoes}
+      />
 
       <div className="home-columns">
         <section className="panel">

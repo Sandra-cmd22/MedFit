@@ -1,0 +1,132 @@
+.evolucao {
+	margin-bottom: 20px;
+}
+
+.evolucao .panel-header {
+	align-items: flex-end;
+}
+
+.evolucao-sub {
+	margin-top: 4px;
+	padding-left: 32px;
+}
+
+.evolucao-select {
+	width: 280px;
+}
+
+.evolucao-soma-aviso {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: -4px 0 20px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--line-soft);
+	color: var(--muted);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.evolucao-soma-aviso.parcial {
+	background: var(--amber-soft);
+	color: var(--amber);
+}
+
+.evolucao-soma-aviso .material-symbols-rounded {
+	font-size: 18px;
+}
+
+.evolucao-body {
+	display: grid;
+	grid-template-columns: 340px minmax(0, 1fr);
+	gap: 32px;
+	align-items: start;
+}
+
+.evolucao-chart svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.evolucao-trilha {
+	fill: none;
+	stroke: var(--line-soft);
+	stroke-linecap: round;
+}
+
+.evolucao-arco {
+	fill: none;
+	stroke-linecap: round;
+	transition: stroke-dasharray 0.6s ease;
+}
+
+.evolucao-rotulo {
+	font-size: 11px;
+	font-weight: 600;
+	fill: var(--ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.evolucao-legenda {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 8px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.evolucao-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 10px;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+
+.evolucao-legenda .evolucao-dot {
+	margin-right: 0;
+}
+
+.evolucao-resumo {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.evolucao-card {
+	padding: 16px 18px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+}
+
+.evolucao-card.destaque {
+	border-color: var(--red);
+	background: var(--red-soft);
+}
+
+.evolucao-card .badge {
+	margin-top: 10px;
+}
+
+.evolucao-valor {
+	margin-top: 8px;
+	font-size: 26px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.evolucao-table {
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+}

@@ -8,6 +8,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "node --test src/utils/indices.test.js src/utils/evolucao.test.js src/utils/carregadorAluno.test.js",
     "preview": "vite preview",
     "firebase:emulator": "firebase emulators:start",
     "firebase:deploy": "firebase deploy --only functions,hosting",
