@@ -1,6 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import fallbackConfig from "../firebase.config";
+
+// firebase.config.js é opcional (gitignored); em produção use as variáveis VITE_FIREBASE_*.
+const localConfigModules = import.meta.glob("../firebase.config.js", { eager: true });
+const fallbackConfig = Object.values(localConfigModules)[0]?.default;
 
 const envMap = {
   apiKey: "VITE_FIREBASE_API_KEY",
